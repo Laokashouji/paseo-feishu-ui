@@ -1,3 +1,11 @@
+# File operation icon/path previews — 0.3.2, 2026-09-14
+
+- Read, Edit and Write headers now show the native icon and one line of path text. Missing/empty paths keep the action heading; paths are not rewritten. The visually hidden action name remains in Chrome's accessibility tree, and native file/disclosure handlers retain their identity.
+- Typecheck, native-entry smoke tests and the browser regression passed. The actual adapter was exercised with all three file operations at 1342px and 390px in light/dark themes, including long-path clipping, equal icon/text/header centers, native open-file and expansion handlers, a missing path, node reuse as Search, theme exit and two-owner cleanup. Browser screenshots were reviewed; these are synthetic RNW-shaped fixtures, not mobile hardware tests.
+- In installed macOS Paseo 0.8.0, the first local reload retained the older adapter because a second connected host still owned it. Temporarily disabling that host's plugin, reloading the local plugin and re-enabling the other host installed the revised shared adapter. Both hosts remained enabled afterward; the desktop reported two owners and one style node.
+- Native dark-theme DOM inspection found seven Edit cards marked with the new file preview; the laid-out offscreen card measured a 20px path row with equal icon/text/header centers. The active chat had equal client/scroll widths of 1268px. The user was working in another conversation, so its navigation, scroll, theme, window and draft were preserved. This is native layout evidence, not an on-screen file-card visual check.
+- Live file streaming, native file-opening actions, native light/compact rendering and iOS/Android hardware were not exercised in this revision. Official native mobile support remains palette-only.
+
 # Shared response bubbles and first-line previews — 0.3.1, 2026-09-14
 
 Addresses the user's three follow-up observations: tools extended 42px into the avatar gutter, Shell used an unnecessary two-line heading, and native Thinking exposed neither a collapsed preview nor a centered visual title.

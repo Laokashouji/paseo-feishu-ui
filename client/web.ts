@@ -351,6 +351,9 @@ function createAdapter(): Shared {
       if (summary?.matches('[dir="auto"]')) {
         mark(summary, 'tool-summary');
         if (name === 'Shell' || name === 'Terminal') mark(badge, 'command-preview');
+        if (kind === 'tool' && ['Read', 'Edit', 'Write'].includes(name) && summary.textContent?.trim()) {
+          mark(badge, 'file-preview');
+        }
       }
       // Loading has a native duplicate-text shimmer overlay. Keep the React-owned overlay for
       // state detection but replace its visual shimmer with one restrained status indicator.
@@ -759,6 +762,17 @@ html[data-pf-active] [data-pf-command-preview] [data-pf-tool-summary] {
  white-space:pre!important; text-align:left!important;
 }
 html[data-pf-active] [data-pf-command-preview] [data-pf-tool-open-file] { grid-row:1!important; }
+/* File operations show their native icon and path. Keep the action name available to
+   assistive technology, including when the host temporarily shows a disclosure icon. */
+html[data-pf-active] [data-pf-file-preview] [data-pf-tool-label] {
+ position:absolute!important; width:1px!important; height:1px!important; margin:-1px!important;
+ padding:0!important; border:0!important; overflow:hidden!important; clip-path:inset(50%)!important;
+}
+html[data-pf-active] [data-pf-file-preview] [data-pf-tool-summary] {
+ grid-row:1!important; height:20px!important; font-size:13px!important; line-height:20px!important;
+ text-align:left!important;
+}
+html[data-pf-active] [data-pf-file-preview] [data-pf-tool-open-file] { grid-row:1!important; }
 @media(min-width:760px) {
  html[data-pf-active] [data-pf-response-part] { margin-left:42px!important; width:calc(100% - 42px)!important; }
  html[data-pf-active] [data-pf-response-avatar]::before {

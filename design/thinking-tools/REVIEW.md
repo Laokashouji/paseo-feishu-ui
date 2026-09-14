@@ -23,3 +23,5 @@ This is design review only. Official iOS bubble/timeline styling remains subject
 ## User refinements after implementation
 
 On 2026-09-14 the user requested one continuous visual bubble for thinking/tools/body, the first command line instead of “运行命令”, and the first exposed thought line instead of “思考”. Version 0.3.1 applies those refinements with centered icon/text rows. Native rows remain separate for virtualization; only their visual frame edges join. The archived prototype above is the original approved design, not a claim of exact final markup.
+
+The user then chose option A for file operations: native icon plus path, on one line. Version 0.3.2 hides the visual Read/Edit/Write heading only when a nonempty path is present, while retaining its accessible action name and the native path, disclosure, and open-file control. Long paths use single-line ellipsis; path normalization remains owned by Paseo. Other tool categories retain their existing presentation.

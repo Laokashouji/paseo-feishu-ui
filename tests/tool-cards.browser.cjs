@@ -168,6 +168,55 @@ test('tool cards retain native behavior, contain details, and clean up across st
       }
     }
   }
+  // File previews retain the action's accessible name and the complete native path.
+  // Exercise node reuse as well as layout: a streamed/missing path must restore the title.
+  for (const width of [1342,390]) {
+    await page.setViewport({width,height:844});
+    for (const mode of ['light','dark']) {
+      await page.evaluate(mode => selectTheme(mode), mode);
+      await wait(`document.documentElement.dataset.pfActive === '${mode}'`);
+      for (const name of ['Read','Edit','Write']) {
+        const filePath = 'src/' + 'long-directory/'.repeat(20) + 'app.tsx';
+        await page.evaluate(({name,filePath}) => {
+          q('#label').textContent = name; q('#summary').textContent = filePath;
+        }, {name,filePath});
+        const actionTitle = {Read:'读取文件',Edit:'编辑文件',Write:'写入文件'}[name];
+        await wait(`q("#badge").hasAttribute("data-pf-file-preview") && !q("#badge").hasAttribute("data-pf-command-preview") && q("#label").dataset.pfToolTitle === '${actionTitle}'`);
+        const geometry = await page.evaluate(() => {
+          const center = e => { const r = e.getBoundingClientRect(); return (r.top+r.bottom)/2; };
+          return {labelWidth:q('#label').getBoundingClientRect().width,
+            path:q('#summary').textContent, pathHeight:q('#summary').getBoundingClientRect().height,
+            icon:center(q('#icon')), text:center(q('#summary')), header:center(q('#header')),
+            overflow:document.documentElement.scrollWidth > innerWidth,
+            truncated:q('#summary').scrollWidth > q('#summary').clientWidth};
+        });
+        assert.equal(geometry.labelWidth,1);
+        assert.equal(geometry.path,filePath);
+        assert.equal(geometry.pathHeight,20);
+        assert.ok(Math.abs(geometry.icon-geometry.text) < 1);
+        assert.ok(Math.abs(geometry.icon-geometry.header) < 1);
+        assert.equal(geometry.overflow,false);
+        assert.equal(geometry.truncated,true);
+        const header = await page.$('#header');
+        const ax = await page.accessibility.snapshot({root:header});
+        assert.ok(ax.name.includes(actionTitle) || ax.name.includes(name), `${name}: accessible name ${ax.name}`);
+        assert.ok(ax.name.includes(filePath));
+        await header.dispose();
+        if (name === 'Edit' && process.env.SCREENSHOT_DIR) {
+          await page.screenshot({path:path.join(process.env.SCREENSHOT_DIR, `file-${mode}-${width}.png`)});
+        }
+      }
+    }
+  }
+  await page.evaluate(() => { q('#file').click(); nativeHeader.click(); nativeHeader.click(); });
+  await wait('!!q(".pf-tool-copy")');
+  assert.deepEqual(await page.evaluate(() => ({same:nativeHeader === q('#header'), toggles:toggleCalls, files:fileCalls})), {same:true,toggles:3,files:2});
+  await page.evaluate(() => { q('#summary').textContent = ''; });
+  await wait('!q("#badge").hasAttribute("data-pf-file-preview")');
+  assert.ok(await page.$eval('#label', e => e.getBoundingClientRect().width > 1));
+  await page.evaluate(() => { q('#label').textContent = 'Search'; q('#summary').textContent = 'useTheme'; });
+  await wait('q("#label").dataset.pfToolTitle === "搜索"');
+  assert.equal(await page.$eval('#summary', e => getComputedStyle(e).gridRowStart), '2');
   await page.evaluate(() => { q('#label').textContent = 'Thinking'; });
   await wait('q("#badge").dataset.pfTool === "thinking" && q(".details").hasAttribute("data-pf-thinking-details")');
   await page.evaluate(() => { q('#label').textContent = 'Shell'; });
