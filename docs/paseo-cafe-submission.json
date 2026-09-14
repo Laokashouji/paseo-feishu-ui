@@ -1,0 +1,12 @@
+{
+  "repo": "Laokashouji/paseo-feishu-ui",
+  "categories": ["theme"],
+  "platforms": ["macos"],
+  "caveats": [
+    "Requires Paseo 0.8.x on both the app and daemon; install on every conversation host for thinking previews.",
+    "Full skin uses a version-specific desktop/web DOM adapter; official iOS and Android receive theme colors only.",
+    "UI labels are Chinese. Windows and Linux desktop have not been tested.",
+    "Gallery images are fictional design references, not app screenshots."
+  ],
+  "submittedBy": "Laokashouji"
+}

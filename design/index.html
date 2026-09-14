@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Paseo 工作台</title>
+  <style>
+    :root{
+      --frame-start:#322d3b;--frame-end:#2e3438;--gutter:#30383c;
+      --navigation:transparent;--groups:#1e1f22;--canvas:#181818;--paper:#1d1d1d;--raised:#2c2c2c;
+      --selected:#262f44;--group-selected:#29344c;--accent:#4c88ff;--accent-hover:oklch(56% .20 262);--text:#d1d1d1;--secondary:#9b9b9b;--muted:#737373;--border:#3b3b3b;
+      --nav-selected:oklch(32% .025 272);--hover:oklch(28% .012 255);--control:oklch(23% .009 270);--code:oklch(18% .005 260);
+      --agent-pill:oklch(32% .04 260);--permission-bg:oklch(28% .025 72);--permission-border:oklch(43% .045 72);--permission-icon:oklch(59% .11 72);
+      --overlay:oklch(22% .008 260);--toast-bg:oklch(91% .006 260);--toast-fg:oklch(24% .01 260);
+      --danger:oklch(65% .19 24);--success:oklch(67% .14 154);--warning:oklch(72% .15 72);
+      --focus:0 0 0 2px oklch(65% .18 262 / .35);--ui:"PingFang SC","SF Pro Text","Helvetica Neue",sans-serif;--display:"PingFang SC","SF Pro Display","Helvetica Neue",sans-serif;--mono:"SFMono-Regular","Cascadia Code","Roboto Mono",monospace;
+      color-scheme:dark;
+    }
+    :root[data-theme="light"]{
+      --frame-start:#e7ebf7;--frame-end:oklch(92.5% .018 242);--gutter:oklch(87.5% .018 242);
+      --navigation:transparent;--groups:#f1f3f5;--canvas:#fafafa;--paper:#fdfdfd;--raised:#fdfdfd;
+      --selected:#e5ebf9;--group-selected:#dee6f5;--accent:#3370ff;--accent-hover:oklch(52% .205 262);--text:#1f2329;--secondary:#646a73;--muted:#8f959e;--border:#dee0e3;
+      --nav-selected:oklch(98.5% .003 260);--hover:oklch(93.5% .008 252);--control:oklch(95.5% .005 260);--code:oklch(96% .003 260);
+      --agent-pill:oklch(91% .025 255);--permission-bg:oklch(97% .018 79);--permission-border:oklch(82% .02 75);--permission-icon:oklch(48% .1 70);
+      --overlay:oklch(99.5% .002 260);--toast-bg:oklch(27% .015 260);--toast-fg:white;--focus:0 0 0 2px oklch(58% .205 262 / .20);color-scheme:light;
+    }
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--frame-end);color:var(--text);font-family:var(--ui);font-size:14px}
+    button,input,textarea{font:inherit;color:inherit}
+    button{border:0;background:none;padding:0;cursor:pointer}
+    svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+    :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    [hidden]{display:none!important}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .app{display:grid;grid-template-columns:180px 160px 300px 6px minmax(0,1fr) 6px;width:100vw;height:100dvh;min-width:0;isolation:isolate;background:linear-gradient(90deg,transparent 0 640px,var(--gutter) 640px 646px,transparent 646px),linear-gradient(180deg,var(--frame-start),var(--frame-end))}
+    .app-nav{grid-column:1;background:var(--navigation);display:flex;flex-direction:column;padding:0 8px 8px;min-width:0;color:var(--secondary)}
+    .window-controls{height:31px;display:flex;align-items:center;gap:8px;padding-left:7px}
+    .window-controls i{width:12px;height:12px;border-radius:50%;display:block;box-shadow:inset 0 0 0 1px oklch(20% .02 260 / .16)}
+    .window-controls i:nth-child(1){background:oklch(67% .20 24)}.window-controls i:nth-child(2){background:oklch(81% .16 83)}.window-controls i:nth-child(3){background:oklch(67% .16 151)}
+    .brand-row{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 5px 0 4px}
+    .workspace-avatar{width:36px;height:36px;border-radius:50%;background:oklch(48% .08 264);color:white;display:grid;place-items:center;font:600 15px/1 var(--display);box-shadow:inset 0 0 0 1px oklch(100% 0 0 / .22)}
+    .icon-button{width:44px;height:44px;display:grid;place-items:center;border-radius:7px;color:var(--secondary);transition:background .15s ease,color .15s ease}
+    .icon-button:hover,.icon-button[aria-expanded="true"]{background:var(--hover);color:var(--text)}
+    .icon-button.small{width:32px;height:32px}.icon-button.small svg{width:17px;height:17px}
+    .nav-list{display:flex;flex:1;flex-direction:column;gap:1px;margin-top:4px;min-height:0}
+    .nav-item,.group-item{height:36px;width:100%;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:7px;color:var(--secondary);font-weight:510;letter-spacing:.01em;text-align:left;white-space:nowrap;transition:background .15s ease,color .15s ease}
+    .nav-item svg{width:17px;height:17px;color:var(--muted)}
+    .nav-item:hover{background:var(--hover);color:var(--text)}
+    .nav-item.active{background:var(--nav-selected);color:var(--text)}.nav-item.active svg{color:var(--accent)}
+    .count{margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--danger);color:white;display:grid;place-items:center;font-size:11px;font-weight:600}
+    .nav-spacer{flex:1}.nav-footer{border-top:1px solid oklch(62% .02 260 / .22);padding-top:7px}
+    .status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 0 2px oklch(61% .14 154 / .14)}
+    .group-nav{grid-column:2;margin:6px 0;background:var(--groups);border-radius:8px 0 0 8px;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:10px 6px;min-width:0;overflow:hidden}
+    .group-head{height:38px;padding:0 8px;display:flex;align-items:center;justify-content:space-between}.group-head h1{font:600 16px/1.45 var(--display);margin:0;letter-spacing:0}
+    .group-list{display:flex;flex-direction:column;gap:2px}.group-item{padding:0 8px;color:var(--secondary);font-weight:450;gap:9px}.group-item svg{width:17px;height:17px}
+    .group-item:hover{background:var(--hover);color:var(--text)}.group-item.active{background:var(--group-selected);color:var(--text);font-weight:550}.group-item .group-count{margin-left:auto;font-size:12px;color:var(--muted)}
+    .group-label{margin:17px 8px 7px;color:var(--muted);font-size:11px;font-weight:550;letter-spacing:.08em}
+    .thread-list{grid-column:3;margin:6px 0;background:var(--canvas);border-radius:0 8px 8px 0;display:flex;flex-direction:column;min-width:0;position:relative;z-index:3;overflow:hidden}
+    .list-header{height:70px;padding:7px 10px 7px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:5px}.list-title-row{height:24px;display:flex;align-items:center;justify-content:space-between;padding:0 2px}.list-title-row h2{font:600 16px/1.4 var(--display);margin:0;letter-spacing:0}
+    .mobile-filter-button{display:none;color:var(--secondary);font-size:13px;height:32px;padding:0 8px;border-radius:6px}.mobile-filter-button:hover{background:var(--hover);color:var(--text)}
+    .search{height:30px;background:var(--control);border:1px solid transparent;border-radius:7px;display:flex;align-items:center;padding:0 9px;gap:7px;color:var(--muted);transition:background .15s ease,border-color .15s ease}.search:focus-within{background:var(--paper);border-color:var(--border);box-shadow:var(--focus)}
+    .search svg{width:15px;height:15px;flex:0 0 auto}.search input{width:100%;min-width:0;border:0;outline:0;background:transparent;font-size:12px;color:var(--text)}.search input::placeholder{color:var(--muted)}
+    .threads{overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--border) transparent;padding:5px 0}.thread{width:calc(100% - 16px);height:60px;margin:0 8px;padding:0 8px;display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:10px;border-radius:7px;text-align:left;position:relative;transition:background .15s ease}.thread:hover{background:var(--hover)}.thread.active{background:var(--selected)}
+    .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:white;font:600 13px/1 var(--display);position:relative;background:var(--avatar,oklch(58% .08 250))}.avatar::after{content:"";position:absolute;right:-1px;bottom:-1px;width:9px;height:9px;border-radius:50%;background:var(--presence,var(--success));border:2px solid var(--canvas)}.thread.active .avatar::after{border-color:var(--selected)}
+    .thread-copy{min-width:0}.thread-name{display:flex;align-items:center;gap:5px;font-weight:510;font-size:14px;line-height:1.45;min-width:0}.thread-name span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.agent-pill{flex:0 0 auto;padding:1px 4px;border-radius:4px;background:var(--agent-pill);color:var(--secondary);font-size:10px;font-weight:550}.thread-preview{margin-top:2px;color:var(--secondary);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.thread-time{align-self:start;margin-top:13px;color:var(--muted);font-size:11px;white-space:nowrap}.empty-state{display:none;text-align:center;color:var(--muted);padding:48px 20px;font-size:13px}
+    .conversation{grid-column:5;margin:6px 0;position:relative;background:var(--canvas);border-radius:8px;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+    .conversation-header{height:70px;flex:0 0 70px;border-bottom:1px solid var(--border);background:var(--canvas);position:relative;z-index:4}.titlebar{height:38px;display:flex;align-items:center;padding:0 10px 0 20px;gap:8px}.back-button{display:none}.conversation-title{font:600 16px/1.45 var(--display);letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.conversation-meta{font-size:11px;color:var(--muted);white-space:nowrap}.header-actions{margin-left:auto;display:flex;align-items:center}.header-actions .icon-button{width:36px;height:36px}
+    .tabs{height:32px;display:flex;align-items:flex-end;padding:0 20px;gap:24px}.tab{height:32px;padding:0 1px;position:relative;color:var(--secondary);font-size:12px;font-weight:510;letter-spacing:.02em}.tab:hover{color:var(--text)}.tab.active{color:var(--accent);font-weight:600}.tab.active::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--accent);border-radius:1px}
+    .message-scroll{flex:1;overflow:auto;overscroll-behavior:contain;padding:16px 20px 158px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}.timeline{width:100%;max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:16px}.date-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:11px;letter-spacing:.02em}.date-divider::before,.date-divider::after{content:"";height:1px;background:var(--border);flex:1}
+    .message{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;align-items:start}.message.user{grid-template-columns:minmax(0,1fr) 32px}.message.user .message-body{justify-self:end;max-width:76%}.avatar.message-avatar{width:32px;height:32px;font-size:12px}.avatar.message-avatar::after{display:none}.message-body{min-width:0;max-width:900px}.message:not(.user) .message-body{background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:16px 20px}.message-author{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--secondary);margin:0 0 6px}.message-author time{color:var(--muted);font-size:11px}.bubble{display:inline-block;background:var(--paper);border:1px solid var(--border);border-radius:3px 8px 8px 8px;padding:10px 12px;line-height:1.7;font-size:14px}.user .bubble{background:var(--selected);border-color:transparent;border-radius:8px 3px 8px 8px}.assistant-copy{line-height:1.7;font-size:14px;max-width:65ch}.assistant-copy p{margin:0 0 8px}.assistant-copy p:last-child{margin:0}.inline-code{font-family:var(--mono);font-size:12px;background:var(--code);padding:2px 5px;border-radius:4px}
+    .tool-card{border:1px solid var(--border);border-radius:8px;background:transparent;overflow:hidden;margin-top:12px}.tool-head{min-height:40px;padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);font-size:12px;font-weight:550}.tool-head svg{width:15px;height:15px;color:var(--secondary)}.tool-status{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--secondary);font-weight:400}.tool-status .status-dot{width:7px;height:7px}.code-block{margin:0;background:var(--code);padding:12px 14px;font:11px/1.75 var(--mono);color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere}
+    .permission-card{border:1px solid var(--permission-border);background:var(--permission-bg);border-radius:8px;padding:11px 12px;margin-top:12px;display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:9px;align-items:start}.permission-icon{width:24px;height:24px;border-radius:6px;background:oklch(60% .08 72 / .16);display:grid;place-items:center;color:var(--permission-icon)}.permission-icon svg{width:14px;height:14px}.permission-title{font-size:12px;font-weight:600;line-height:1.5}.permission-copy{font-size:11px;color:var(--secondary);line-height:1.55;margin-top:2px}.permission-action{height:30px;padding:0 10px;border:1px solid var(--permission-border);border-radius:6px;background:var(--paper);font-size:11px;font-weight:550;white-space:nowrap}.permission-action:hover{background:var(--hover);color:var(--text)}
+    .composer-wrap{position:absolute;left:20px;right:20px;bottom:20px;z-index:5;display:flex;justify-content:center;pointer-events:none}.composer{position:relative;width:min(1000px,100%);min-height:116px;background:var(--paper);border:1px solid var(--border);border-radius:8px;box-shadow:none;padding:11px 10px 8px;pointer-events:auto;transition:border-color .15s ease,box-shadow .15s ease}.composer:focus-within{border-color:var(--accent);box-shadow:var(--focus)}.composer textarea{display:block;width:100%;height:54px;resize:none;border:0;outline:0;background:transparent;padding:1px 4px;color:var(--text);font-size:14px;line-height:1.7}.composer textarea::placeholder{color:var(--muted)}.composer-bar{height:32px;display:flex;align-items:center;gap:1px}.composer-tool{width:32px;height:32px;border-radius:6px;display:grid;place-items:center;color:var(--secondary)}.composer-tool:hover{background:var(--hover);color:var(--text)}.composer-tool svg{width:16px;height:16px}.model-select{height:32px;padding:0 7px;margin-left:4px;border-radius:6px;color:var(--secondary);font-size:11px;font-weight:510;letter-spacing:.01em}.model-select:hover,.model-select[aria-expanded="true"]{background:var(--hover);color:var(--text)}
+    .model-menu{position:absolute;left:42px;bottom:42px;width:210px;padding:6px;background:var(--overlay);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px oklch(0% 0 0 / .20);z-index:8}.model-menu-title{padding:5px 8px 7px;color:var(--muted);font-size:11px;letter-spacing:.02em}.model-option{width:100%;min-height:42px;padding:6px 8px;border-radius:6px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;text-align:left}.model-option:hover{background:var(--hover);color:var(--text)}.model-option strong{font-size:12px;font-weight:550}.model-option small{display:block;margin-top:2px;color:var(--muted);font-size:10px}.model-option svg{width:15px;height:15px;color:var(--accent)}
+    .send{margin-left:auto;width:32px;height:32px;border-radius:7px;display:grid;place-items:center;background:var(--control);color:var(--muted);cursor:default;transition:background .15s ease,color .15s ease}.send.ready{background:var(--accent);color:white;cursor:pointer}.send.ready:hover{background:var(--accent-hover);color:white}.send svg{width:16px;height:16px}
+    .toast{position:fixed;left:50%;bottom:154px;transform:translate(-50%,12px);background:var(--toast-bg);color:var(--toast-fg);padding:8px 12px;border:1px solid oklch(60% .01 260 / .18);border-radius:7px;box-shadow:0 8px 24px oklch(0% 0 0 / .18);font-size:12px;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:20}.toast.show{opacity:1;transform:translate(-50%,0)}
+    .panel-placeholder{display:none;max-width:620px;margin:74px auto;text-align:center;color:var(--secondary)}.panel-placeholder h3{font:600 16px/1.5 var(--display);margin:0 0 6px}.panel-placeholder p{font-size:13px;line-height:1.7;margin:0}
+    @media(max-width:1150px){.app{grid-template-columns:168px 290px 6px minmax(0,1fr) 6px;background:linear-gradient(90deg,transparent 0 458px,var(--gutter) 458px 464px,transparent 464px),linear-gradient(180deg,var(--frame-start),var(--frame-end))}.group-nav{display:none}.app-nav{grid-column:1}.thread-list{grid-column:2;border-radius:8px}.conversation{grid-column:4}.mobile-filter-button{display:block}}
+    @media(max-width:900px){.app{grid-template-columns:288px 6px minmax(0,1fr) 6px;background:linear-gradient(90deg,transparent 0 288px,var(--gutter) 288px 294px,transparent 294px),linear-gradient(180deg,var(--frame-start),var(--frame-end))}.app-nav{display:none}.thread-list{grid-column:1;border-radius:8px}.conversation{grid-column:3}.message-scroll{padding-left:16px;padding-right:16px}}
+    @media(max-width:680px){.app{display:block;padding:6px;background:linear-gradient(180deg,var(--frame-start),var(--frame-end))}.thread-list{display:none;width:100%;height:100%;margin:0;border-radius:8px}.conversation{display:flex;width:100%;height:100%;margin:0;border-radius:8px}.app.show-list .thread-list{display:flex}.app.show-list .conversation{display:none}.back-button{display:grid;flex:0 0 44px;margin-left:-10px}.conversation-meta{display:none}.header-actions .icon-button:nth-child(-n+2){display:none}.titlebar{padding-left:10px}.tabs{padding-left:54px}.composer-wrap{left:12px;right:12px;bottom:12px}.message-scroll{padding:14px 12px 150px}.message.user .message-body{max-width:86%}.message:not(.user) .message-body{padding:14px}.permission-card{grid-template-columns:24px minmax(0,1fr)}.permission-action{grid-column:2;justify-self:start}}
+    @media(max-height:620px){.composer-wrap{bottom:10px}.composer{min-height:104px}.composer textarea{height:44px}.message-scroll{padding-bottom:134px}}
+  </style>
+</head>
+<body>
+  <svg class="sr-only" aria-hidden="true">
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5h6l2-2h3l2 2h4v11h-17z"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m9 7-5 5 5 5M15 7l5 5-5 5M13 5l-2 14"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2-.7-.5-1.2.9-1.9-2.1-2.1-1.9.9-1.2-.5-.7-2h-3l-.7 2-1.2.5-1.9-.9-2.1 2.1.9 1.9-.5 1.2-2 .7v3l2 .7.5 1.2-.9 1.9 2.1 2.1 1.9-.9 1.2.5.7 2h3l.7-2 1.2-.5 1.9.9 2.1-2.1-.9-1.9.5-1.2z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 14h4l2 2h4l2-2h4"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 3 20h18zM12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m8.5 12 2.3 2.3 4.8-5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m10 8 5 4-5 4z"/></symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24"><path d="M4 8h16v11H4zM3 4h18v4H3zM9 12h6"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3"/><circle cx="17" cy="10" r="2"/><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5M15 15c3 0 5 1.4 5 4"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M15 4v16"/></symbol>
+    <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m9 12 5-5a3 3 0 1 1 4 4l-7 7a5 5 0 0 1-7-7l7-7"/></symbol>
+    <symbol id="i-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 12v2a3 3 0 0 0 6 0v-2a10 10 0 1 0-4 8"/></symbol>
+    <symbol id="i-command" viewBox="0 0 24 24"><path d="M9 7V5a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v14a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m4 4 17 8-17 8 3-8zM7 12h14"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 15.6A8 8 0 0 1 8.4 4 8.2 8.2 0 1 0 20 15.6z"/></symbol>
+  </svg>
+
+  <main class="app" id="app" data-od-id="paseo-desktop-app">
+    <nav class="app-nav" aria-label="Paseo 主导航" data-od-id="app-navigation">
+      <div class="window-controls" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="brand-row">
+        <div class="workspace-avatar" aria-label="Paseo Local">P</div>
+        <button class="icon-button small" type="button" title="新建工作区" aria-label="新建工作区" data-od-id="new-workspace"><svg><use href="#i-plus"/></svg></button>
+      </div>
+      <div class="nav-list">
+        <button class="nav-item active" type="button" data-section="工作区" data-od-id="nav-workspaces"><svg><use href="#i-grid"/></svg><span>工作区</span><span class="count">3</span></button>
+        <button class="nav-item" type="button" data-section="历史" data-od-id="nav-history"><svg><use href="#i-clock"/></svg><span>历史</span></button>
+        <button class="nav-item" type="button" data-section="计划" data-od-id="nav-schedules"><svg><use href="#i-calendar"/></svg><span>计划</span></button>
+        <button class="nav-item" type="button" data-section="项目" data-od-id="nav-projects"><svg><use href="#i-folder"/></svg><span>项目</span></button>
+        <button class="nav-item" type="button" data-section="扩展" data-od-id="nav-extensions"><svg><use href="#i-code"/></svg><span>扩展</span></button>
+        <div class="nav-spacer"></div>
+        <div class="nav-footer">
+          <button class="nav-item" type="button" data-section="设置" data-od-id="nav-settings"><svg><use href="#i-settings"/></svg><span>设置</span></button>
+          <button class="nav-item" type="button" data-section="本地状态" data-od-id="nav-local-status"><span class="status-dot"></span><span>Local Codex</span></button>
+        </div>
+      </div>
+    </nav>
+
+    <aside class="group-nav" aria-label="工作区分组" data-od-id="group-navigation">
+      <div class="group-head"><h1 data-od-id="group-heading">工作区</h1><button class="icon-button small" type="button" aria-label="分组设置" title="分组设置" data-od-id="group-settings"><svg><use href="#i-settings"/></svg></button></div>
+      <div class="group-list">
+        <button class="group-item active" type="button" data-group="all" data-od-id="group-all"><svg><use href="#i-inbox"/></svg><span>全部</span><span class="group-count">8</span></button>
+        <button class="group-item" type="button" data-group="needs" data-od-id="group-needs-input"><svg><use href="#i-alert"/></svg><span>需要输入</span><span class="group-count">3</span></button>
+        <button class="group-item" type="button" data-group="working" data-od-id="group-working"><svg><use href="#i-play"/></svg><span>进行中</span><span class="group-count">2</span></button>
+        <button class="group-item" type="button" data-group="review" data-od-id="group-review"><svg><use href="#i-check"/></svg><span>待检查</span><span class="group-count">2</span></button>
+        <button class="group-item" type="button" data-group="done" data-od-id="group-done"><svg><use href="#i-archive"/></svg><span>已完成</span><span class="group-count">1</span></button>
+      </div>
+      <div class="group-label">项目</div>
+      <div class="group-list">
+        <button class="group-item" type="button" data-group="website" data-od-id="project-website"><svg><use href="#i-folder"/></svg><span>Paseo Web</span></button>
+        <button class="group-item" type="button" data-group="plugin" data-od-id="project-plugin"><svg><use href="#i-folder"/></svg><span>本地插件</span></button>
+        <button class="group-item" type="button" data-group="docs" data-od-id="project-docs"><svg><use href="#i-folder"/></svg><span>帮助中心</span></button>
+      </div>
+    </aside>
+
+    <section class="thread-list" aria-label="会话列表" data-od-id="conversation-list">
+      <header class="list-header">
+        <div class="list-title-row"><h2 id="list-heading" data-od-id="conversation-list-heading">工作区</h2><button class="mobile-filter-button" id="mobileFilter" type="button" data-od-id="mobile-filter">全部</button></div>
+        <label class="search" data-od-id="workspace-search"><svg><use href="#i-search"/></svg><span class="sr-only">搜索工作区</span><input id="searchInput" type="search" placeholder="搜索工作区（⌘ K）" autocomplete="off"></label>
+      </header>
+      <div class="threads" id="threads" role="list">
+        <button class="thread active" type="button" data-id="permissions" data-groups="needs website" data-name="Web 端权限流修复" data-preview="等待确认：允许修改 access.ts" data-time="现在" data-agent="Codex" data-avatar="PW" data-color="oklch(51% .11 258)" data-od-id="workspace-permission-flow">
+          <span class="avatar" style="--avatar:oklch(51% .11 258)">PW</span><span class="thread-copy"><span class="thread-name"><span>Web 端权限流修复</span><span class="agent-pill">Codex</span></span><span class="thread-preview">等待确认：允许修改 access.ts</span></span><time class="thread-time">现在</time>
+        </button>
+        <button class="thread" type="button" data-id="feishu" data-groups="working plugin" data-name="实现飞书风格桌面稿" data-preview="正在整理四栏响应式布局" data-time="4 分钟" data-agent="Codex" data-avatar="UI" data-color="oklch(61% .11 188)" data-od-id="workspace-feishu-ui">
+          <span class="avatar" style="--avatar:oklch(61% .11 188)">UI</span><span class="thread-copy"><span class="thread-name"><span>实现飞书风格桌面稿</span><span class="agent-pill">Codex</span></span><span class="thread-preview">正在整理四栏响应式布局</span></span><time class="thread-time">4 分钟</time>
+        </button>
+        <button class="thread" type="button" data-id="release" data-groups="review website" data-name="发布前检查" data-preview="测试通过，等待最终检查" data-time="18 分钟" data-agent="Atlas" data-avatar="RA" data-color="oklch(61% .12 145)" data-od-id="workspace-release-check">
+          <span class="avatar" style="--avatar:oklch(61% .12 145)">RA</span><span class="thread-copy"><span class="thread-name"><span>发布前检查</span><span class="agent-pill">Atlas</span></span><span class="thread-preview">测试通过，等待最终检查</span></span><time class="thread-time">18 分钟</time>
+        </button>
+        <button class="thread" type="button" data-id="docs" data-groups="needs docs" data-name="重写快捷键文档" data-preview="需要你选择目标读者" data-time="1 小时" data-agent="Codex" data-avatar="DX" data-color="oklch(58% .10 315)" data-od-id="workspace-shortcut-docs">
+          <span class="avatar" style="--avatar:oklch(58% .10 315);--presence:var(--warning)">DX</span><span class="thread-copy"><span class="thread-name"><span>重写快捷键文档</span><span class="agent-pill">Codex</span></span><span class="thread-preview">需要你选择目标读者</span></span><time class="thread-time">1 小时</time>
+        </button>
+        <button class="thread" type="button" data-id="tokens" data-groups="working plugin" data-name="统一插件设计令牌" data-preview="已更新 12 个颜色变量" data-time="2 小时" data-agent="Nova" data-avatar="TK" data-color="oklch(62% .13 67)" data-od-id="workspace-plugin-tokens">
+          <span class="avatar" style="--avatar:oklch(62% .13 67)">TK</span><span class="thread-copy"><span class="thread-name"><span>统一插件设计令牌</span><span class="agent-pill">Nova</span></span><span class="thread-preview">已更新 12 个颜色变量</span></span><time class="thread-time">2 小时</time>
+        </button>
+        <button class="thread" type="button" data-id="tests" data-groups="review website" data-name="修复搜索回归测试" data-preview="3 项测试待检查" data-time="昨天" data-agent="Codex" data-avatar="TS" data-color="oklch(55% .10 28)" data-od-id="workspace-search-tests">
+          <span class="avatar" style="--avatar:oklch(55% .10 28)">TS</span><span class="thread-copy"><span class="thread-name"><span>修复搜索回归测试</span><span class="agent-pill">Codex</span></span><span class="thread-preview">3 项测试待检查</span></span><time class="thread-time">昨天</time>
+        </button>
+        <button class="thread" type="button" data-id="archive" data-groups="done docs" data-name="整理旧版迁移说明" data-preview="已归档到 docs/migration" data-time="周五" data-agent="Atlas" data-avatar="MG" data-color="oklch(58% .07 245)" data-od-id="workspace-migration-docs">
+          <span class="avatar" style="--avatar:oklch(58% .07 245);--presence:var(--muted)">MG</span><span class="thread-copy"><span class="thread-name"><span>整理旧版迁移说明</span><span class="agent-pill">Atlas</span></span><span class="thread-preview">已归档到 docs/migration</span></span><time class="thread-time">周五</time>
+        </button>
+        <button class="thread" type="button" data-id="onboarding" data-groups="needs docs" data-name="新手引导信息架构" data-preview="等待确认首屏范围" data-time="8 月 31" data-agent="Nova" data-avatar="ON" data-color="oklch(58% .10 205)" data-od-id="workspace-onboarding">
+          <span class="avatar" style="--avatar:oklch(58% .10 205);--presence:var(--warning)">ON</span><span class="thread-copy"><span class="thread-name"><span>新手引导信息架构</span><span class="agent-pill">Nova</span></span><span class="thread-preview">等待确认首屏范围</span></span><time class="thread-time">8 月 31</time>
+        </button>
+        <div class="empty-state" id="emptyState">没有匹配的工作区</div>
+      </div>
+    </section>
+
+    <section class="conversation" aria-label="当前会话" data-od-id="active-conversation">
+      <header class="conversation-header">
+        <div class="titlebar">
+          <button class="icon-button back-button" id="backButton" type="button" aria-label="返回会话列表" title="返回列表" data-od-id="back-to-list"><svg><use href="#i-chevron-left"/></svg></button>
+          <div class="conversation-title" id="conversationTitle" data-od-id="conversation-title">Web 端权限流修复</div>
+          <div class="conversation-meta" id="conversationMeta">Paseo Web · Local Codex</div>
+          <div class="header-actions">
+            <button class="icon-button" type="button" aria-label="搜索会话" title="搜索会话" data-od-id="conversation-search"><svg><use href="#i-search"/></svg></button>
+            <button class="icon-button" type="button" aria-label="参与者" title="参与者" data-od-id="conversation-participants"><svg><use href="#i-users"/></svg></button>
+            <button class="icon-button" type="button" aria-label="打开侧栏" title="打开侧栏" data-od-id="conversation-panel"><svg><use href="#i-panel"/></svg></button>
+            <button class="icon-button" id="themeToggle" type="button" aria-label="切换到亮色模式" title="切换到亮色模式" data-od-id="theme-toggle"><svg><use id="themeIcon" href="#i-sun"/></svg></button>
+            <button class="icon-button" type="button" aria-label="更多操作" title="更多" data-od-id="conversation-more"><svg><use href="#i-more"/></svg></button>
+          </div>
+        </div>
+        <div class="tabs" role="tablist" aria-label="会话内容">
+          <button class="tab active" type="button" role="tab" aria-selected="true" data-panel="messages" data-od-id="tab-messages">消息</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-panel="files" data-od-id="tab-files">文件</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-panel="changes" data-od-id="tab-changes">变更</button>
+        </div>
+      </header>
+
+      <div class="message-scroll" id="messagePanel" data-od-id="message-timeline">
+        <div class="timeline">
+          <div class="date-divider">今天 02:04</div>
+          <article class="message user" data-od-id="message-user-request">
+            <div class="message-body"><div class="message-author">你 <time>02:01</time></div><div class="bubble" id="userPrompt">检查权限请求在取消后仍重复弹出的原因，并给出最小修复。</div></div>
+            <div class="avatar message-avatar" style="--avatar:oklch(47% .04 260)">你</div>
+          </article>
+          <article class="message" data-od-id="message-agent-response">
+            <div class="avatar message-avatar" style="--avatar:oklch(51% .11 258)">C</div>
+            <div class="message-body">
+              <div class="message-author"><span id="agentName">Local Codex</span><time>02:03</time></div>
+              <div class="assistant-copy" id="assistantCopy"><p>问题出在取消路径只关闭了弹窗，没有清除挂起的请求标记。下一次状态同步时，队列又把同一条请求推回界面。</p><p>我会把清理逻辑收口到 <span class="inline-code">resolvePermission()</span>，让允许、拒绝与取消共用同一个结束路径。</p></div>
+              <section class="tool-card" data-od-id="tool-card-code-inspection">
+                <div class="tool-head"><svg><use href="#i-code"/></svg><span>检查代码 · src/runtime/access.ts</span><span class="tool-status"><span class="status-dot"></span>完成</span></div>
+                <pre class="code-block"><code>function resolvePermission(id, result) {
+  pending.delete(id)
+  permissionStore.finish(id, result)
+}
+
+onCancel={() =&gt; resolvePermission(request.id, "cancelled")}</code></pre>
+              </section>
+              <section class="permission-card" data-od-id="permission-card-edit-file">
+                <div class="permission-icon"><svg><use href="#i-lock"/></svg></div>
+                <div><div class="permission-title">允许修改 1 个本地文件？</div><div class="permission-copy">仅限当前工作区的 src/runtime/access.ts；不会访问真实服务。</div></div>
+                <button class="permission-action" id="permissionAction" type="button" data-od-id="permission-review">查看变更</button>
+              </section>
+            </div>
+          </article>
+        </div>
+      </div>
+      <div class="panel-placeholder" id="filesPanel"><h3>本次会话文件</h3><p>src/runtime/access.ts · tests/access.test.ts</p></div>
+      <div class="panel-placeholder" id="changesPanel"><h3>2 处待确认变更</h3><p>统一权限结束路径，并补充取消场景的回归测试。</p></div>
+
+      <div class="composer-wrap" id="composerWrap">
+        <form class="composer" id="composer" data-od-id="message-composer">
+          <label class="sr-only" for="composerInput">给 Agent 发消息</label>
+          <textarea id="composerInput" placeholder="给 Agent 发消息，输入 @ 引用文件，或使用 / 命令" data-od-id="composer-input"></textarea>
+          <div class="model-menu" id="modelMenu" hidden data-od-id="model-menu">
+            <div class="model-menu-title">当前执行环境</div>
+            <button class="model-option" type="button" data-od-id="model-option-local-codex"><span><strong>Local Codex</strong><small>在当前本地工作区运行</small></span><svg><use href="#i-check"/></svg></button>
+          </div>
+          <div class="composer-bar">
+            <button class="composer-tool" type="button" aria-label="添加附件" title="添加附件" data-od-id="composer-attachment"><svg><use href="#i-paperclip"/></svg></button>
+            <button class="composer-tool" type="button" aria-label="引用 Agent 或文件" title="引用" data-od-id="composer-reference"><svg><use href="#i-at"/></svg></button>
+            <button class="composer-tool" type="button" aria-label="命令" title="命令" data-od-id="composer-command"><svg><use href="#i-command"/></svg></button>
+            <button class="model-select" id="modelSelect" type="button" aria-expanded="false" aria-controls="modelMenu" data-od-id="model-selector">Local Codex⌄</button>
+            <button class="send" id="sendButton" type="submit" aria-label="发送演示消息" data-od-id="send-message"><svg><use href="#i-send"/></svg></button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status">本地演示：内容未发送到任何服务</div>
+
+  <script>
+    const app=document.getElementById('app');
+    const searchInput=document.getElementById('searchInput');
+    const threads=[...document.querySelectorAll('.thread')];
+    const emptyState=document.getElementById('emptyState');
+    const listHeading=document.getElementById('list-heading');
+    const mobileFilter=document.getElementById('mobileFilter');
+    const conversationTitle=document.getElementById('conversationTitle');
+    const conversationMeta=document.getElementById('conversationMeta');
+    const userPrompt=document.getElementById('userPrompt');
+    const assistantCopy=document.getElementById('assistantCopy');
+    const agentName=document.getElementById('agentName');
+    const composerInput=document.getElementById('composerInput');
+    const sendButton=document.getElementById('sendButton');
+    const toast=document.getElementById('toast');
+    const themeToggle=document.getElementById('themeToggle');
+    const themeIcon=document.getElementById('themeIcon');
+    const modelSelect=document.getElementById('modelSelect');
+    const modelMenu=document.getElementById('modelMenu');
+    let currentGroup='all';
+    const copy={
+      permissions:['检查权限请求在取消后仍重复弹出的原因，并给出最小修复。','问题出在取消路径只关闭了弹窗，没有清除挂起的请求标记。下一次状态同步时，队列又把同一条请求推回界面。','Paseo Web · Local Codex'],
+      feishu:['把桌面工作区调整成飞书式四栏，并保留 Paseo 的 Agent 工作流。','四栏边界已经按 180 / 160 / 306 / 自适应主区收紧。下一步检查窄屏折叠和 composer 的可用性。','本地插件 · Local Codex'],
+      release:['跑完发布前的界面完整性检查。','静态检查与主要交互已通过。当前只剩视觉复核：选中态密度、会话头高度和输入区底边距。','Paseo Web · Atlas'],
+      docs:['重写快捷键文档，先确认目标读者。','我已整理现有命令，但目标读者会影响结构：新用户需要任务导向，熟练用户更适合按快捷键分类。','帮助中心 · Local Codex'],
+      tokens:['统一插件里的颜色与间距变量。','已把分散值归并为 12 个颜色变量和 6 档间距，保留旧变量作为兼容别名。','本地插件 · Nova'],
+      tests:['搜索清空后列表没有恢复，补一个回归测试。','已定位到过滤条件在清空事件中没有同步重置。测试会覆盖输入、清空和切换分组三条路径。','Paseo Web · Local Codex'],
+      archive:['把旧版迁移说明归档，并保留可追溯链接。','迁移说明已移动到 docs/migration，原入口保留跳转，不会影响历史链接。','帮助中心 · Atlas'],
+      onboarding:['梳理新手引导首屏的信息架构。','已收敛为三个核心动作：创建工作区、选择 Agent、发送第一条任务。等待确认是否展示计划任务入口。','帮助中心 · Nova']
+    };
+
+    function filterThreads(){
+      const q=searchInput.value.trim().toLowerCase();let visible=0;
+      threads.forEach(thread=>{const groupOk=currentGroup==='all'||thread.dataset.groups.split(' ').includes(currentGroup);const text=(thread.dataset.name+' '+thread.dataset.preview+' '+thread.dataset.agent).toLowerCase();const show=groupOk&&text.includes(q);thread.hidden=!show;if(show)visible++;});
+      emptyState.style.display=visible?'none':'block';
+    }
+    function selectThread(thread){
+      threads.forEach(item=>item.classList.toggle('active',item===thread));
+      const data=copy[thread.dataset.id]||copy.permissions;
+      conversationTitle.textContent=thread.dataset.name;
+      conversationMeta.textContent=data[2];
+      userPrompt.textContent=data[0];
+      assistantCopy.innerHTML='<p>'+data[1]+'</p><p>相关处理会保持在当前本地工作区，不会连接真实服务。</p>';
+      agentName.textContent=thread.dataset.agent==='Codex'?'Local Codex':thread.dataset.agent;
+      document.querySelector('[data-panel="messages"]').click();
+      if(innerWidth<=680)app.classList.remove('show-list');
+    }
+    searchInput.addEventListener('input',filterThreads);
+    document.querySelectorAll('.group-item').forEach(button=>button.addEventListener('click',()=>{
+      document.querySelectorAll('.group-item').forEach(item=>item.classList.toggle('active',item===button));
+      currentGroup=button.dataset.group;
+      listHeading.textContent=button.querySelector('span').textContent;
+      mobileFilter.textContent=button.querySelector('span').textContent;
+      filterThreads();
+    }));
+    threads.forEach(thread=>thread.addEventListener('click',()=>selectThread(thread)));
+    document.querySelectorAll('.nav-item[data-section]').forEach(button=>button.addEventListener('click',()=>{
+      document.querySelectorAll('.nav-item[data-section]').forEach(item=>item.classList.toggle('active',item===button));
+      const section=button.dataset.section;
+      if(section!=='本地状态')listHeading.textContent=section;
+      toast.textContent=section==='工作区'?'已切换到工作区':'已切换到'+section+'（演示）';
+      toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1400);
+    }));
+    document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(item=>{item.classList.toggle('active',item===tab);item.setAttribute('aria-selected',item===tab?'true':'false')});
+      const panel=tab.dataset.panel;
+      document.getElementById('messagePanel').style.display=panel==='messages'?'block':'none';
+      document.getElementById('filesPanel').style.display=panel==='files'?'block':'none';
+      document.getElementById('changesPanel').style.display=panel==='changes'?'block':'none';
+      document.getElementById('composerWrap').style.display=panel==='messages'?'flex':'none';
+    }));
+    composerInput.addEventListener('input',()=>sendButton.classList.toggle('ready',composerInput.value.trim().length>0));
+    document.getElementById('composer').addEventListener('submit',event=>{
+      event.preventDefault();if(!composerInput.value.trim())return;
+      composerInput.value='';sendButton.classList.remove('ready');
+      toast.textContent='本地演示：内容未发送到任何服务';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1900);
+    });
+    document.getElementById('backButton').addEventListener('click',()=>app.classList.add('show-list'));
+    mobileFilter.addEventListener('click',()=>{
+      const groups=[['all','全部'],['needs','需要输入'],['working','进行中'],['review','待检查'],['done','已完成']];
+      const next=(groups.findIndex(item=>item[0]===currentGroup)+1)%groups.length;
+      currentGroup=groups[next][0];mobileFilter.textContent=groups[next][1];listHeading.textContent=groups[next][1];searchInput.value='';filterThreads();
+    });
+    document.getElementById('permissionAction').addEventListener('click',()=>document.querySelector('[data-panel="changes"]').click());
+    themeToggle.addEventListener('click',()=>{
+      const isDark=document.documentElement.dataset.theme==='dark';
+      document.documentElement.dataset.theme=isDark?'light':'dark';
+      themeIcon.setAttribute('href',isDark?'#i-moon':'#i-sun');
+      const label=isDark?'切换到暗黑模式':'切换到亮色模式';themeToggle.setAttribute('aria-label',label);themeToggle.title=label;
+    });
+    modelSelect.addEventListener('click',event=>{event.stopPropagation();const open=modelMenu.hidden;modelMenu.hidden=!open;modelSelect.setAttribute('aria-expanded',String(open))});
+    modelMenu.addEventListener('click',event=>{event.stopPropagation();modelMenu.hidden=true;modelSelect.setAttribute('aria-expanded','false')});
+    document.addEventListener('click',()=>{modelMenu.hidden=true;modelSelect.setAttribute('aria-expanded','false')});
+    document.addEventListener('keydown',event=>{
+      if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){event.preventDefault();searchInput.focus()}
+      if(event.key==='Escape'){modelMenu.hidden=true;modelSelect.setAttribute('aria-expanded','false')}
+    });
+  </script>
+</body>
+</html>

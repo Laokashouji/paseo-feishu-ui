@@ -1,0 +1,37 @@
+{
+  "name": "paseo-feishu-ui",
+  "version": "0.3.1",
+  "private": true,
+  "description": "Feishu themes and desktop skin for Paseo 0.8; native mobile palette support",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/native-entry.test.cjs",
+    "test:browser": "node --test tests/tool-cards.browser.cjs"
+  },
+  "devDependencies": {
+    "@getpaseo/plugin": "0.8.0",
+    "@types/react": "19.2.0",
+    "puppeteer-core": "24.15.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "typescript": "5.9.3",
+    "zod": "4.4.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Laokashouji/paseo-feishu-ui.git"
+  },
+  "homepage": "https://github.com/Laokashouji/paseo-feishu-ui",
+  "bugs": {
+    "url": "https://github.com/Laokashouji/paseo-feishu-ui/issues"
+  },
+  "keywords": [
+    "paseo",
+    "paseo-plugin",
+    "theme",
+    "feishu",
+    "dark-mode"
+  ]
+}

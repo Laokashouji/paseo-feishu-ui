@@ -1,0 +1,17 @@
+{
+  "source": "OpenDesign",
+  "executionMode": "Local Codex",
+  "projectId": "paseo-feishu-ui-20260907",
+  "runId": "b0a84b33-b4a2-4205-9ca7-a946d6e66295",
+  "entry": "thinking-tools.html",
+  "generatedSha256": "0d21d471b6595884a12429035c294dbe2149f5da07563abbde105dde24d39af4",
+  "reviewedSha256": "a12e90092f33706afa25122d5f11187ae4c8ba15706a7fc88c7d0b95b581e95a",
+  "reviewDate": "2026-09-14",
+  "postGenerationRefinements": [
+    "Compact mobile tool rows; composer in layout flow to avoid covering content.",
+    "Synchronize aria-expanded when switching to awaiting state.",
+    "Show no-summary text for running thinking; simplify illustrative copy.",
+    "Clarify command-completed preview label while a separate permission remains pending."
+  ],
+  "productionPluginChanged": false
+}

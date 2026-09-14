@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Paseo · 思考与工具调用</title>
+  <style>
+    :root {
+      --frame-start:#322d3b; --frame-end:#2e3438; --gutter:#30383c;
+      --canvas:#181818; --paper:#1d1d1d; --raised:#2c2c2c; --selected:#262f44;
+      --accent:#4c88ff; --text:#d1d1d1; --secondary:#9b9b9b; --muted:#737373; --border:#3b3b3b;
+      --hover:oklch(30% .009 260); --control:oklch(24% .007 260); --code:oklch(18% .005 260);
+      --success:oklch(70% .035 245); --danger:oklch(66% .18 25); --danger-bg:oklch(29% .045 25);
+      --warning:oklch(76% .12 76); --warning-bg:oklch(28% .025 76); --warning-border:oklch(43% .045 76);
+      --shadow:oklch(0% 0 0 / .24);
+      --font-display:"PingFang SC","SF Pro Display","Helvetica Neue",sans-serif;
+      --font-body:"PingFang SC","SF Pro Text","Helvetica Neue",sans-serif;
+      --font-mono:"SFMono-Regular","Cascadia Code","Roboto Mono",monospace;
+      color-scheme:dark;
+    }
+    :root[data-theme="light"] {
+      --frame-start:#e7ebf7; --frame-end:oklch(92.5% .018 242); --gutter:oklch(87.5% .018 242);
+      --canvas:#fafafa; --paper:#fdfdfd; --raised:#fdfdfd; --selected:#e5ebf9;
+      --accent:#3370ff; --text:#1f2329; --secondary:#646a73; --muted:#8f959e; --border:#dee0e3;
+      --hover:oklch(94.5% .007 252); --control:oklch(96% .004 260); --code:oklch(95.5% .004 260);
+      --success:oklch(49% .04 245); --danger:oklch(53% .19 25); --danger-bg:oklch(96% .025 25);
+      --warning:oklch(47% .105 66); --warning-bg:oklch(97% .018 79); --warning-border:oklch(82% .035 75);
+      --shadow:oklch(24% .01 260 / .12);
+      color-scheme:light;
+    }
+    * { box-sizing:border-box; }
+    html,body { width:100%; height:100%; margin:0; overflow:hidden; }
+    body {
+      background:linear-gradient(180deg,var(--frame-start),var(--frame-end));
+      color:var(--text); font-family:var(--font-body); font-size:14px; -webkit-font-smoothing:antialiased;
+    }
+    button,input,textarea,select { color:inherit; font:inherit; }
+    button { border:0; padding:0; background:transparent; cursor:pointer; }
+    svg { width:18px; height:18px; display:block; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+    :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+    [hidden] { display:none!important; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    .app {
+      display:grid; grid-template-columns:72px 268px 6px minmax(0,1fr) 6px;
+      width:100vw; height:100dvh; min-width:0;
+      background:linear-gradient(90deg,transparent 0 340px,var(--gutter) 340px 346px,transparent 346px),linear-gradient(180deg,var(--frame-start),var(--frame-end));
+    }
+    .rail {
+      grid-column:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+      padding:31px 8px 10px; color:var(--secondary);
+    }
+    .window-controls { position:absolute; top:12px; left:14px; display:flex; gap:7px; }
+    .window-controls i { width:10px; height:10px; border-radius:50%; background:var(--muted); opacity:.55; }
+    .brand-mark {
+      width:38px; height:38px; margin-bottom:12px; border-radius:9px; display:grid; place-items:center;
+      background:var(--selected); color:var(--text); font:600 16px/1 var(--font-display);
+    }
+    .rail-button,.icon-button {
+      width:44px; height:44px; border-radius:8px; display:grid; place-items:center; color:var(--secondary);
+      transition:background 150ms ease,color 150ms ease;
+    }
+    .rail-button:hover,.rail-button.active,.icon-button:hover { background:var(--hover); color:var(--text); }
+    .rail-spacer { flex:1; }
+    .local-dot { width:8px; height:8px; border-radius:50%; background:var(--success); }
+
+    .thread-pane {
+      grid-column:2; margin:6px 0; display:flex; flex-direction:column; min-width:0; overflow:hidden;
+      background:var(--canvas); border-radius:8px;
+    }
+    .thread-header { height:70px; flex:0 0 70px; padding:10px 12px; border-bottom:1px solid var(--border); }
+    .thread-title-row { height:24px; display:flex; align-items:center; justify-content:space-between; }
+    .thread-title { margin:0; font:600 16px/1.45 var(--font-display); letter-spacing:0; }
+    .quiet-button {
+      min-width:32px; height:32px; padding:0 8px; display:grid; place-items:center; border-radius:7px; color:var(--secondary);
+    }
+    .quiet-button:hover { background:var(--hover); color:var(--text); }
+    .search-box {
+      height:30px; margin-top:3px; display:flex; align-items:center; gap:7px; padding:0 9px;
+      border:1px solid transparent; border-radius:7px; background:var(--control); color:var(--muted);
+    }
+    .search-box:focus-within { border-color:var(--border); background:var(--paper); }
+    .search-box svg { width:15px; height:15px; }
+    .search-box input { width:100%; min-width:0; border:0; outline:0; background:transparent; font-size:12px; }
+    .search-box input::placeholder { color:var(--muted); }
+    .thread-list { overflow:auto; padding:6px 0; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+    .thread-item {
+      width:calc(100% - 16px); min-height:62px; margin:0 8px 2px; padding:8px;
+      display:grid; grid-template-columns:36px minmax(0,1fr) auto; align-items:center; gap:10px;
+      border-radius:7px; text-align:left;
+    }
+    .thread-item:hover { background:var(--hover); }
+    .thread-item.active { background:var(--selected); }
+    .thread-avatar {
+      width:36px; height:36px; display:grid; place-items:center; border-radius:50%;
+      background:oklch(51% .11 258); color:oklch(98% .002 260); font-weight:600;
+    }
+    .thread-copy { min-width:0; }
+    .thread-name,.thread-preview {
+      display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .thread-name { color:var(--text); font-weight:550; }
+    .thread-preview { margin-top:3px; color:var(--secondary); font-size:12px; }
+    .thread-time { align-self:start; padding-top:5px; color:var(--muted); font-size:11px; }
+
+    .conversation {
+      grid-column:4; position:relative; min-width:0; margin:6px 0; display:flex; flex-direction:column; overflow:hidden;
+      border-radius:8px; background:var(--canvas);
+    }
+    .conversation-header {
+      height:64px; flex:0 0 64px; display:flex; align-items:center; gap:12px;
+      padding:0 16px 0 20px; border-bottom:1px solid var(--border);
+    }
+    .conversation-heading { min-width:0; }
+    .conversation-heading h1 {
+      margin:0; overflow:hidden; font:600 16px/1.45 var(--font-display); letter-spacing:0;
+      text-overflow:ellipsis; white-space:nowrap;
+    }
+    .conversation-heading p { margin:2px 0 0; color:var(--muted); font-size:11px; letter-spacing:.01em; }
+    .header-actions { margin-left:auto; display:flex; align-items:center; gap:6px; }
+    .state-select-wrap { position:relative; }
+    .state-select-wrap::after {
+      content:""; position:absolute; right:12px; top:18px; width:6px; height:6px;
+      border-right:1.5px solid var(--secondary); border-bottom:1.5px solid var(--secondary);
+      transform:rotate(45deg); pointer-events:none;
+    }
+    .state-select {
+      width:120px; height:44px; padding:0 32px 0 12px; appearance:none;
+      border:1px solid var(--border); border-radius:7px; background:var(--paper);
+      color:var(--secondary); font-size:12px; font-weight:510; letter-spacing:.02em; cursor:pointer;
+    }
+    .state-select:hover { background:var(--hover); color:var(--text); }
+
+    .message-scroll { flex:1; overflow:auto; padding:18px 24px 132px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+    .timeline { width:min(800px,100%); margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+    .date-divider { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:11px; letter-spacing:.02em; }
+    .date-divider::before,.date-divider::after { content:""; height:1px; flex:1; background:var(--border); }
+    .message { display:grid; grid-template-columns:32px minmax(0,1fr); gap:10px; align-items:start; }
+    .message.user { grid-template-columns:minmax(0,1fr) 32px; }
+    .message-avatar {
+      width:32px; height:32px; display:grid; place-items:center; border-radius:50%;
+      background:oklch(51% .11 258); color:oklch(98% .002 260); font-size:12px; font-weight:600;
+    }
+    .message-avatar.user-avatar { background:oklch(47% .04 260); }
+    .message-body { min-width:0; }
+    .message.user .message-body { justify-self:end; max-width:76%; }
+    .message-author { display:flex; align-items:center; gap:7px; margin:0 0 6px; color:var(--secondary); font-size:12px; }
+    .message-author time { color:var(--muted); font-size:11px; }
+    .user-bubble { padding:10px 12px; border-radius:8px 3px 8px 8px; background:var(--selected); font-size:14px; line-height:1.7; }
+    .assistant-card { min-width:0; padding:15px 16px 16px; border:1px solid var(--border); border-radius:8px; background:var(--raised); }
+    .assistant-intro { max-width:65ch; margin:0 0 12px; font-size:14px; line-height:1.75; }
+
+    .activity-stack { display:grid; gap:6px; }
+    .activity-item { min-width:0; overflow:hidden; border:1px solid var(--border); border-radius:8px; background:transparent; }
+    .activity-toggle {
+      width:100%; min-height:48px; padding:7px 10px;
+      display:grid; grid-template-columns:18px minmax(0,1fr) auto 18px; align-items:center; gap:8px;
+      color:var(--text); text-align:left;
+    }
+    .activity-toggle:hover { background:var(--hover); }
+    .activity-icon { color:var(--secondary); }
+    .activity-icon svg,.chevron svg { width:16px; height:16px; }
+    .activity-copy { min-width:0; }
+    .activity-line { display:flex; align-items:baseline; gap:7px; min-width:0; }
+    .activity-name { flex:0 0 auto; font-size:12px; font-weight:600; }
+    .activity-summary { min-width:0; overflow:hidden; color:var(--secondary); font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+    .activity-meta { margin-top:2px; overflow:hidden; color:var(--muted); font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+    .activity-status { display:flex; align-items:center; gap:6px; color:var(--secondary); font-size:11px; white-space:nowrap; }
+    .activity-status::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--success); }
+    .activity-item[data-status="running"] .activity-status { color:var(--accent); }
+    .activity-item[data-status="running"] .activity-status::before {
+      background:var(--accent); box-shadow:0 0 0 3px oklch(61% .2 262 / .14); animation:pulse 1.6s ease-in-out infinite;
+    }
+    .activity-item[data-status="failed"] { border-color:oklch(52% .12 25); }
+    .activity-item[data-status="failed"] .activity-status { color:var(--danger); }
+    .activity-item[data-status="failed"] .activity-status::before { background:var(--danger); }
+    .activity-item[data-status="awaiting"] .activity-status { color:var(--warning); }
+    .activity-item[data-status="awaiting"] .activity-status::before { background:var(--warning); }
+    .chevron { color:var(--muted); transition:transform 160ms ease; }
+    .activity-toggle[aria-expanded="true"] .chevron { transform:rotate(180deg); }
+    .activity-detail { border-top:1px solid var(--border); background:var(--paper); }
+    .thinking-detail { padding:10px 12px 11px 36px; color:var(--secondary); font-size:12px; line-height:1.7; }
+    .thinking-detail strong { color:var(--text); font-weight:550; }
+    .tool-detail-head {
+      min-height:36px; padding:0 8px 0 12px; display:flex; align-items:center; gap:8px;
+      border-bottom:1px solid var(--border); color:var(--muted); font-size:11px;
+    }
+    .tool-detail-head span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .copy-button {
+      min-width:44px; height:36px; margin-left:auto; display:inline-flex; align-items:center; justify-content:center;
+      gap:5px; border-radius:6px; color:var(--secondary); font-size:11px;
+    }
+    .copy-button:hover { background:var(--hover); color:var(--text); }
+    .copy-button svg { width:14px; height:14px; }
+    .code-scroll {
+      margin:0; overflow-x:auto; padding:11px 12px 12px; background:var(--code); color:var(--text);
+      font:11px/1.75 var(--font-mono); scrollbar-width:thin; scrollbar-color:var(--border) transparent;
+    }
+    .code-scroll code { display:block; width:max-content; min-width:100%; white-space:pre; }
+    .error-copy { padding:9px 12px 10px; border-top:1px solid var(--border); background:var(--danger-bg); color:var(--danger); font:11px/1.7 var(--font-mono); }
+
+    .permission-card {
+      margin-top:10px; padding:11px 12px; display:grid; grid-template-columns:28px minmax(0,1fr) auto;
+      align-items:center; gap:10px; border:1px solid var(--warning-border); border-radius:8px; background:var(--warning-bg);
+    }
+    .permission-icon {
+      width:28px; height:28px; display:grid; place-items:center; border-radius:7px;
+      color:var(--warning); background:oklch(62% .08 76 / .13);
+    }
+    .permission-icon svg { width:15px; height:15px; }
+    .permission-title { font-size:12px; font-weight:600; }
+    .permission-copy { margin-top:2px; color:var(--secondary); font-size:11px; line-height:1.55; }
+    .permission-actions { display:flex; align-items:center; gap:6px; }
+    .secondary-action,.primary-action { min-height:36px; padding:0 11px; border-radius:6px; font-size:11px; font-weight:550; letter-spacing:.02em; }
+    .secondary-action { border:1px solid var(--border); background:var(--paper); color:var(--secondary); }
+    .secondary-action:hover { background:var(--hover); color:var(--text); }
+    .primary-action { background:var(--accent); color:oklch(99% .002 260); }
+    .primary-action:hover { background:oklch(56% .2 262); color:oklch(99% .002 260); }
+    .primary-action:active { transform:translateY(1px); }
+    .permission-card.resolved { border-color:var(--border); background:var(--paper); }
+    .permission-card.resolved .permission-icon { color:var(--secondary); background:var(--control); }
+
+    .result-copy { margin:12px 0 0; padding-top:11px; border-top:1px solid var(--border); color:var(--text); font-size:13px; line-height:1.7; }
+    .concept-row {
+      min-height:44px; margin-top:10px; padding-top:8px; display:flex; align-items:center; gap:8px; border-top:1px solid var(--border);
+    }
+    .concept-label { padding:2px 6px; border:1px solid var(--border); border-radius:4px; color:var(--muted); font-size:10px; letter-spacing:.04em; }
+    .concept-copy { min-width:0; flex:1; color:var(--secondary); font-size:11px; }
+    .concept-toggle { min-height:36px; padding:0 8px; border-radius:6px; color:var(--secondary); font-size:11px; }
+    .concept-toggle:hover { background:var(--hover); color:var(--text); }
+    .collapsed-process {
+      min-height:46px; padding:0 11px; display:flex; align-items:center; gap:8px;
+      border:1px solid var(--border); border-radius:8px; color:var(--secondary); font-size:12px;
+    }
+    .collapsed-process svg { width:16px; height:16px; }
+    .collapsed-process button { min-height:36px; margin-left:auto; padding:0 8px; border-radius:6px; color:var(--secondary); font-size:11px; }
+    .collapsed-process button:hover { background:var(--hover); color:var(--text); }
+
+    .composer-wrap {
+      position:absolute; right:24px; bottom:22px; left:24px; z-index:5;
+      display:flex; justify-content:center; pointer-events:none;
+    }
+    .composer {
+      width:min(800px,100%); min-height:94px; padding:10px 10px 8px;
+      border:1px solid var(--border); border-radius:8px; background:var(--paper);
+      box-shadow:0 10px 28px var(--shadow); pointer-events:auto;
+    }
+    .composer:focus-within { border-color:var(--accent); }
+    .composer textarea {
+      width:100%; height:44px; resize:none; border:0; outline:0; background:transparent;
+      color:var(--text); font-size:14px; line-height:1.7;
+    }
+    .composer textarea::placeholder { color:var(--muted); }
+    .composer-bar { height:30px; display:flex; align-items:center; gap:2px; }
+    .composer-tool { width:32px; height:32px; display:grid; place-items:center; border-radius:6px; color:var(--secondary); }
+    .composer-tool:hover { background:var(--hover); color:var(--text); }
+    .composer-tool svg,.send-button svg { width:16px; height:16px; }
+    .send-button {
+      width:32px; height:32px; margin-left:auto; display:grid; place-items:center; border-radius:7px;
+      background:var(--control); color:var(--muted); cursor:default;
+    }
+    .send-button.ready { background:var(--accent); color:oklch(99% .002 260); cursor:pointer; }
+    .send-button.ready:hover { background:oklch(56% .2 262); color:oklch(99% .002 260); }
+    .toast {
+      position:fixed; left:calc(50% + 170px); bottom:130px; z-index:20;
+      max-width:min(360px,calc(100vw - 32px)); padding:8px 12px;
+      border:1px solid var(--border); border-radius:7px; background:var(--text); color:var(--canvas);
+      box-shadow:0 8px 24px var(--shadow); font-size:12px; opacity:0;
+      transform:translate(-50%,8px); pointer-events:none; transition:opacity 160ms ease,transform 160ms ease;
+    }
+    .toast.show { opacity:1; transform:translate(-50%,0); }
+    @keyframes pulse { 0%,100% { opacity:.65; } 50% { opacity:1; } }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; transition-duration:.01ms!important; }
+    }
+    @media (max-width:920px) {
+      .app {
+        grid-template-columns:268px 6px minmax(0,1fr) 6px;
+        background:linear-gradient(90deg,transparent 0 268px,var(--gutter) 268px 274px,transparent 274px),linear-gradient(180deg,var(--frame-start),var(--frame-end));
+      }
+      .rail { display:none; }
+      .thread-pane { grid-column:1; }
+      .conversation { grid-column:3; }
+    }
+    @media (max-width:680px) {
+      .app { display:block; padding:6px; background:linear-gradient(180deg,var(--frame-start),var(--frame-end)); }
+      .thread-pane { display:none; }
+      .conversation { width:100%; height:100%; margin:0; border-radius:8px; }
+      .conversation-header { height:60px; flex-basis:60px; padding:0 8px 0 12px; gap:6px; }
+      .conversation-heading { flex:1; }
+      .conversation-heading p { display:none; }
+      .header-actions { gap:2px; }
+      .state-select { width:108px; }
+      .message-scroll { min-height:0; padding:14px 8px 20px; }
+      .timeline { gap:14px; }
+      .message { grid-template-columns:28px minmax(0,1fr); gap:7px; }
+      .message.user { grid-template-columns:minmax(0,1fr) 28px; }
+      .message-avatar { width:28px; height:28px; font-size:11px; }
+      .message.user .message-body { max-width:88%; }
+      .assistant-card { padding:12px 10px; }
+      .activity-toggle { min-height:52px; grid-template-columns:18px minmax(0,1fr) auto 16px; gap:6px; padding:8px; }
+      .activity-status { gap:4px; font-size:10px; }
+      .activity-line { display:block; }
+      .activity-summary { display:block; margin-top:3px; white-space:nowrap; line-height:1.5; }
+      .activity-meta { display:none; }
+      .thinking-detail { padding-left:12px; }
+      .permission-card { grid-template-columns:28px minmax(0,1fr); align-items:start; }
+      .permission-actions { grid-column:2; }
+      .permission-actions button { min-height:44px; }
+      .copy-button { height:44px; }
+      .concept-row { align-items:flex-start; flex-wrap:wrap; }
+      .concept-copy { flex-basis:calc(100% - 76px); line-height:1.55; }
+      .concept-toggle { min-height:44px; margin-left:auto; }
+      .composer-wrap { position:static; flex:0 0 auto; margin:8px 14px max(14px,env(safe-area-inset-bottom)); }
+      .composer { min-height:100px; box-shadow:0 8px 22px var(--shadow); }
+      .composer textarea { height:38px; }
+      .composer-bar { height:44px; }
+      .composer-tool,.send-button { width:44px; height:44px; }
+      .toast { left:50%; bottom:112px; }
+    }
+    @media (max-width:430px) {
+      .conversation-heading h1 { max-width:112px; font-size:14px; }
+      .state-select { width:102px; padding-left:9px; }
+      .assistant-intro { line-height:1.7; }
+      .date-divider { margin:0 2px; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="sr-only" aria-hidden="true">
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M5 5h14v11H9l-4 3z"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 9h16"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4zM4 7v10l8 4 8-4V7M12 11v10"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2-.7-.5-1.2.9-1.9-2.1-2.1-1.9.9-1.2-.5-.7-2h-3l-.7 2-1.2.5-1.9-.9-2.1 2.1.9 1.9-.5 1.2-2 .7v3l2 .7.5 1.2-.9 1.9 2.1 2.1 1.9-.9 1.2.5.7 2h3l.7-2 1.2-.5 1.9.9 2.1-2.1-.9-1.9.5-1.2z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></symbol>
+    <symbol id="i-compose" viewBox="0 0 24 24"><path d="M12 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8M15 5l4 4M9 15l1-4 7-7 4 4-7 7z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 15.6A8 8 0 0 1 8.4 4 8.2 8.2 0 1 0 20 15.6z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9.5 5.2A3.5 3.5 0 0 0 4 8v1.2A3.8 3.8 0 0 0 5.5 16v.5A3.5 3.5 0 0 0 12 18V6a3 3 0 0 0-2.5-.8zM14.5 5.2A3.5 3.5 0 0 1 20 8v1.2A3.8 3.8 0 0 1 18.5 16v.5A3.5 3.5 0 0 1 12 18M8 10h4M16 10h-4M8 15h4M16 15h-4"/></symbol>
+    <symbol id="i-file-search" viewBox="0 0 24 24"><path d="M6 3h8l4 4v6M14 3v5h5"/><circle cx="14" cy="16" r="3"/><path d="m16.2 18.2 2.3 2.3M6 12h4M6 16h3"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l11-11-4-4L4 16zM13.5 6.5l4 4"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m9 12 5-5a3 3 0 1 1 4 4l-7 7a5 5 0 0 1-7-7l7-7"/></symbol>
+    <symbol id="i-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 12v2a3 3 0 0 0 6 0v-2a10 10 0 1 0-4 8"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m4 4 17 8-17 8 3-8zM7 12h14"/></symbol>
+  </svg>
+
+  <main class="app" data-od-id="thinking-tools-prototype">
+    <nav class="rail" aria-label="Paseo 主导航" data-od-id="app-navigation">
+      <div class="window-controls" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="brand-mark" aria-label="Paseo">P</div>
+      <button class="rail-button active" type="button" aria-label="工作区" title="工作区" data-od-id="nav-workspaces"><svg><use href="#i-grid"/></svg></button>
+      <button class="rail-button" type="button" aria-label="会话" title="会话" data-od-id="nav-conversations"><svg><use href="#i-message"/></svg></button>
+      <button class="rail-button" type="button" aria-label="计划" title="计划" data-od-id="nav-schedules"><svg><use href="#i-calendar"/></svg></button>
+      <button class="rail-button" type="button" aria-label="扩展" title="扩展" data-od-id="nav-extensions"><svg><use href="#i-box"/></svg></button>
+      <div class="rail-spacer"></div>
+      <button class="rail-button" type="button" aria-label="设置" title="设置" data-od-id="nav-settings"><svg><use href="#i-settings"/></svg></button>
+      <button class="rail-button" type="button" aria-label="本地 Agent 在线" title="Local Codex 在线" data-od-id="local-status"><span class="local-dot"></span></button>
+    </nav>
+
+    <aside class="thread-pane" aria-label="工作区会话" data-od-id="conversation-list">
+      <header class="thread-header">
+        <div class="thread-title-row"><h2 class="thread-title" data-od-id="conversation-list-title">工作区</h2><button class="quiet-button" type="button" aria-label="新建会话" title="新建会话" data-od-id="new-conversation"><svg><use href="#i-compose"/></svg></button></div>
+        <label class="search-box" data-od-id="conversation-search"><svg><use href="#i-search"/></svg><span class="sr-only">搜索会话</span><input id="threadSearch" type="search" placeholder="搜索会话" autocomplete="off"></label>
+      </header>
+      <div class="thread-list" id="threadList" role="list">
+        <button class="thread-item active" type="button" data-search="思考 工具调用 横向溢出" data-od-id="thread-thinking-tools">
+          <span class="thread-avatar">UI</span><span class="thread-copy"><span class="thread-name">思考与工具调用</span><span class="thread-preview">等待确认：允许更新演示样式</span></span><time class="thread-time">现在</time>
+        </button>
+        <button class="thread-item" type="button" data-search="会话 搜索 结果" data-od-id="thread-search-result">
+          <span class="thread-avatar">SR</span><span class="thread-copy"><span class="thread-name">会话搜索结果</span><span class="thread-preview">已完成界面走查</span></span><time class="thread-time">18 分钟</time>
+        </button>
+        <button class="thread-item" type="button" data-search="桌面 主题 亮色 暗色" data-od-id="thread-theme-tokens">
+          <span class="thread-avatar">TK</span><span class="thread-copy"><span class="thread-name">桌面主题令牌</span><span class="thread-preview">正在检查亮色对比度</span></span><time class="thread-time">1 小时</time>
+        </button>
+      </div>
+    </aside>
+
+    <section class="conversation" aria-label="当前聊天" data-od-id="active-conversation">
+      <header class="conversation-header" data-od-id="conversation-header">
+        <div class="conversation-heading"><h1 data-od-id="conversation-title">思考与工具调用</h1><p id="headerStatus">Local Codex · 1 项执行中</p></div>
+        <div class="header-actions">
+          <label class="state-select-wrap" data-od-id="state-selector"><span class="sr-only">切换演示状态</span><select class="state-select" id="stateSelect" aria-label="切换演示状态" data-od-id="state-select-control"><option value="mixed">混合状态</option><option value="complete">命令完成</option><option value="running">执行中</option><option value="failed">执行失败</option><option value="awaiting">待用户确认</option></select></label>
+          <button class="icon-button" id="themeToggle" type="button" aria-label="切换到亮色模式" title="切换到亮色模式" data-od-id="theme-toggle"><svg><use id="themeIcon" href="#i-sun"/></svg></button>
+          <button class="icon-button" type="button" aria-label="更多操作" title="更多操作" data-od-id="conversation-more"><svg><use href="#i-more"/></svg></button>
+        </div>
+      </header>
+
+      <div class="message-scroll" data-od-id="message-timeline">
+        <div class="timeline">
+          <div class="date-divider">今天 10:42</div>
+          <article class="message user" data-od-id="message-user-request">
+            <div class="message-body"><div class="message-author">你 <time>10:41</time></div><div class="user-bubble">把思考和工具调用改成紧凑的飞书风格，修复长命令截断。</div></div>
+            <div class="message-avatar user-avatar">你</div>
+          </article>
+
+          <article class="message" data-od-id="message-agent-execution">
+            <div class="message-avatar">C</div>
+            <div class="message-body assistant-card">
+              <div class="message-author">Local Codex <time>10:42</time></div>
+              <p class="assistant-intro">我先检查消息样式，再验证长命令显示。需要更新文件时会请你确认。</p>
+
+              <div class="activity-stack" id="processGroup" data-od-id="execution-process">
+                <section class="activity-item" id="thinkingActivity" data-status="complete" data-od-id="thinking-row-structure">
+                  <button class="activity-toggle" type="button" aria-expanded="false" aria-controls="thinkingDetail" data-toggle-detail="thinkingDetail" data-od-id="toggle-thinking-detail">
+                    <span class="activity-icon"><svg><use href="#i-brain"/></svg></span>
+                    <span class="activity-copy"><span class="activity-line"><span class="activity-name">思考</span><span class="activity-summary" id="thinkingSummary">先检查消息布局，再核对长命令的显示。</span></span><span class="activity-meta" id="thinkingMeta">已提供摘要</span></span>
+                    <span class="activity-status" id="thinkingStatus">完成</span><span class="chevron"><svg><use href="#i-chevron"/></svg></span>
+                  </button>
+                  <div class="activity-detail thinking-detail" id="thinkingDetail" hidden><strong>执行摘要：</strong>保留一张助手卡作为上下文；思考与工具按真实顺序逐条呈现，命令和输出只在各自详情区显示，避免把日志拆成新的聊天气泡。</div>
+                </section>
+
+                <section class="activity-item" data-status="complete" data-od-id="tool-row-search-files">
+                  <button class="activity-toggle" type="button" aria-expanded="false" aria-controls="searchDetail" data-toggle-detail="searchDetail" data-od-id="toggle-search-detail">
+                    <span class="activity-icon"><svg><use href="#i-file-search"/></svg></span>
+                    <span class="activity-copy"><span class="activity-line"><span class="activity-name">搜索文件</span><span class="activity-summary">找到消息行、代码块与移动端样式。</span></span><span class="activity-meta">3 个匹配 · 0.3 秒</span></span>
+                    <span class="activity-status">完成</span><span class="chevron"><svg><use href="#i-chevron"/></svg></span>
+                  </button>
+                  <div class="activity-detail" id="searchDetail" hidden><div class="tool-detail-head"><span>执行详情</span><button class="copy-button" type="button" data-copy="rg -n &quot;thinking|tool-call|code-block&quot; src styles tests" data-od-id="copy-search-command"><svg><use href="#i-copy"/></svg>复制</button></div><pre class="code-scroll"><code>rg -n "thinking|tool-call|code-block" src styles tests
+src/components/message-row.tsx
+src/styles/message-row.css
+tests/message-row.test.ts</code></pre></div>
+                </section>
+
+                <section class="activity-item" id="commandActivity" data-status="running" data-od-id="tool-row-run-checks">
+                  <button class="activity-toggle" type="button" aria-expanded="false" aria-controls="commandDetail" data-toggle-detail="commandDetail" data-od-id="toggle-command-detail">
+                    <span class="activity-icon"><svg><use href="#i-terminal"/></svg></span>
+                    <span class="activity-copy"><span class="activity-line"><span class="activity-name">运行命令</span><span class="activity-summary" id="commandSummary">检查 390px 下命令容器与触控目标。</span></span><span class="activity-meta" id="commandMeta">界面检查 · 已运行 4 秒</span></span>
+                    <span class="activity-status" id="commandStatus">执行中</span><span class="chevron"><svg><use href="#i-chevron"/></svg></span>
+                  </button>
+                  <div class="activity-detail" id="commandDetail" hidden><div class="tool-detail-head"><span>完整命令可在此区域横向滚动</span><button class="copy-button" type="button" data-copy="pnpm test --filter @paseo/demo-ui -- --runInBand --testNamePattern=&quot;tool row preserves horizontal command overflow at 390px&quot;" data-od-id="copy-long-command"><svg><use href="#i-copy"/></svg>复制</button></div><pre class="code-scroll"><code>pnpm test --filter @paseo/demo-ui -- --runInBand --testNamePattern="tool row preserves horizontal command overflow at 390px"</code></pre><div class="error-copy" id="commandError" hidden>Error: code detail exceeded its container at 390px; expected internal horizontal scrolling.</div></div>
+                </section>
+
+                <section class="activity-item" data-status="awaiting" data-od-id="tool-row-edit-style">
+                  <button class="activity-toggle" type="button" aria-expanded="false" aria-controls="editDetail" data-toggle-detail="editDetail" data-od-id="toggle-edit-detail">
+                    <span class="activity-icon"><svg><use href="#i-edit"/></svg></span>
+                    <span class="activity-copy"><span class="activity-line"><span class="activity-name">更新文件</span><span class="activity-summary">准备调整演示消息行样式。</span></span><span class="activity-meta">1 个文件 · 等待权限</span></span>
+                    <span class="activity-status">待确认</span><span class="chevron"><svg><use href="#i-chevron"/></svg></span>
+                  </button>
+                  <div class="activity-detail thinking-detail" id="editDetail" hidden>范围仅限虚构演示工程的 <code>src/styles/message-row.css</code>。确认前不会执行写入。</div>
+                </section>
+              </div>
+
+              <div class="collapsed-process" id="collapsedProcess" hidden data-od-id="collapsed-process-summary"><svg><use href="#i-layers"/></svg><span id="collapsedSummary">执行过程已收起 · 2 项完成 / 1 项执行中 / 1 项待确认</span><button type="button" id="restoreProcess" data-od-id="restore-whole-process">展开</button></div>
+
+              <section class="permission-card" id="permissionCard" data-od-id="permission-confirmation">
+                <div class="permission-icon"><svg><use href="#i-lock"/></svg></div>
+                <div><div class="permission-title" id="permissionTitle">允许更新 1 个演示文件？</div><div class="permission-copy" id="permissionCopy">将更新 docs-demo 的消息样式，仅本次操作有效。</div></div>
+                <div class="permission-actions" id="permissionActions"><button class="secondary-action" id="denyPermission" type="button" data-od-id="deny-permission">拒绝</button><button class="primary-action" id="allowPermission" type="button" data-od-id="allow-permission">允许一次</button></div>
+              </section>
+
+              <p class="result-copy" id="resultCopy" hidden></p>
+
+              <div class="concept-row" data-od-id="future-process-concept">
+                <span class="concept-label">远期概念</span><span class="concept-copy">整轮折叠只收起执行条目；权限确认始终独立外露。</span><button class="concept-toggle" id="collapseProcess" type="button" data-od-id="collapse-whole-process">折叠执行过程</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="composer-wrap">
+        <form class="composer" id="composer" data-od-id="message-composer">
+          <label class="sr-only" for="composerInput">给 Agent 发消息</label>
+          <textarea id="composerInput" placeholder="给 Agent 发消息，输入 @ 引用文件" data-od-id="composer-input"></textarea>
+          <div class="composer-bar"><button class="composer-tool" type="button" aria-label="添加附件" title="添加附件" data-od-id="attach-file"><svg><use href="#i-paperclip"/></svg></button><button class="composer-tool" type="button" aria-label="引用文件" title="引用文件" data-od-id="reference-file"><svg><use href="#i-at"/></svg></button><button class="send-button" id="sendButton" type="submit" aria-label="发送演示消息" data-od-id="send-message"><svg><use href="#i-send"/></svg></button></div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const root = document.documentElement;
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const stateSelect = document.getElementById('stateSelect');
+    const thinkingActivity = document.getElementById('thinkingActivity');
+    const thinkingSummary = document.getElementById('thinkingSummary');
+    const thinkingMeta = document.getElementById('thinkingMeta');
+    const thinkingStatus = document.getElementById('thinkingStatus');
+    const commandActivity = document.getElementById('commandActivity');
+    const commandStatus = document.getElementById('commandStatus');
+    const commandSummary = document.getElementById('commandSummary');
+    const commandMeta = document.getElementById('commandMeta');
+    const commandError = document.getElementById('commandError');
+    const headerStatus = document.getElementById('headerStatus');
+    const permissionCard = document.getElementById('permissionCard');
+    const permissionTitle = document.getElementById('permissionTitle');
+    const permissionCopy = document.getElementById('permissionCopy');
+    const permissionActions = document.getElementById('permissionActions');
+    const resultCopy = document.getElementById('resultCopy');
+    const processGroup = document.getElementById('processGroup');
+    const collapsedProcess = document.getElementById('collapsedProcess');
+    const collapsedSummary = document.getElementById('collapsedSummary');
+    const composerInput = document.getElementById('composerInput');
+    const sendButton = document.getElementById('sendButton');
+    const toast = document.getElementById('toast');
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 1700);
+    }
+
+    document.querySelectorAll('[data-toggle-detail]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const detail = document.getElementById(button.dataset.toggleDetail);
+        const willOpen = detail.hidden;
+        detail.hidden = !willOpen;
+        button.setAttribute('aria-expanded', String(willOpen));
+      });
+    });
+
+    document.querySelectorAll('[data-copy]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(button.dataset.copy);
+          showToast('命令已复制');
+        } catch (error) {
+          showToast('无法访问剪贴板，请手动选择命令');
+        }
+      });
+    });
+
+    themeToggle.addEventListener('click', () => {
+      const isDark = root.dataset.theme === 'dark';
+      root.dataset.theme = isDark ? 'light' : 'dark';
+      themeIcon.setAttribute('href', isDark ? '#i-moon' : '#i-sun');
+      const nextLabel = isDark ? '切换到暗黑模式' : '切换到亮色模式';
+      themeToggle.setAttribute('aria-label', nextLabel);
+      themeToggle.title = nextLabel;
+    });
+
+    const stateContent = {
+      mixed: { status:'running', label:'执行中', summary:'检查 390px 下命令容器与触控目标。', meta:'界面检查 · 已运行 4 秒', header:'Local Codex · 1 项执行中', result:'', collapse:'执行过程已收起 · 2 项完成 / 1 项执行中 / 1 项待确认', thinking:'complete' },
+      complete: { status:'complete', label:'完成', summary:'390px 检查通过，长命令保留在详情区滚动。', meta:'检查通过 · 7.2 秒', header:'Local Codex · 已完成', result:'检查已完成：单条执行行保持紧凑，长命令不会撑破聊天列，权限确认仍独立可见。', collapse:'执行过程已收起 · 3 项完成 / 1 项待确认', thinking:'complete' },
+      running: { status:'running', label:'执行中', summary:'正在检查命令详情区的横向滚动。', meta:'界面检查 · 已运行 9 秒', header:'Local Codex · 正在执行', result:'', collapse:'执行过程已收起 · 1 项完成 / 2 项执行中 / 1 项待确认', thinking:'running' },
+      failed: { status:'failed', label:'失败', summary:'390px 检查失败，错误文本保留在详情区。', meta:'检查失败 · 退出于 6.8 秒', header:'Local Codex · 1 项失败', result:'检查未通过：命令详情仍需限制在自身容器内，错误信息已保留，便于继续处理。', collapse:'执行过程已收起 · 2 项完成 / 1 项失败 / 1 项待确认', thinking:'complete' },
+      awaiting: { status:'awaiting', label:'待确认', summary:'命令已准备，等待用户确认后继续。', meta:'尚未执行', header:'Local Codex · 等待你的确认', result:'', collapse:'执行过程已收起 · 2 项完成 / 2 项待确认', thinking:'complete' }
+    };
+
+    function applyState(value) {
+      const state = stateContent[value];
+      commandActivity.dataset.status = state.status;
+      commandStatus.textContent = state.label;
+      commandSummary.textContent = state.summary;
+      commandMeta.textContent = state.meta;
+      headerStatus.textContent = state.header;
+      commandError.hidden = value !== 'failed';
+      resultCopy.textContent = state.result;
+      resultCopy.hidden = !state.result;
+      collapsedSummary.textContent = state.collapse;
+      const thinkingRunning = state.thinking === 'running';
+      thinkingActivity.dataset.status = thinkingRunning ? 'running' : 'complete';
+      thinkingStatus.textContent = thinkingRunning ? '执行中' : '完成';
+      thinkingSummary.textContent = thinkingRunning ? '' : '先检查消息布局，再核对长命令的显示。';
+      thinkingSummary.hidden = thinkingRunning;
+      thinkingMeta.textContent = thinkingRunning ? '' : '已提供摘要';
+      thinkingMeta.hidden = thinkingRunning;
+      if (value === 'awaiting') {
+        document.getElementById('commandDetail').hidden = true;
+        document.querySelector('[data-toggle-detail="commandDetail"]').setAttribute('aria-expanded', 'false');
+      }
+      const thinkingDetail = document.getElementById('thinkingDetail');
+      thinkingDetail.textContent = thinkingRunning ? '思考进行中，暂无可展示的摘要。' : '已提供的摘要：先检查消息布局，再验证命令详情能否横向滚动，最后检查手机上的触控区域。';
+    }
+
+    stateSelect.addEventListener('change', () => applyState(stateSelect.value));
+    document.getElementById('collapseProcess').addEventListener('click', () => {
+      processGroup.hidden = true;
+      collapsedProcess.hidden = false;
+    });
+    document.getElementById('restoreProcess').addEventListener('click', () => {
+      processGroup.hidden = false;
+      collapsedProcess.hidden = true;
+    });
+
+    function resolvePermission(allowed) {
+      permissionCard.classList.add('resolved');
+      permissionTitle.textContent = allowed ? '已允许本次更新' : '已拒绝本次更新';
+      permissionCopy.textContent = allowed ? '权限仅对这一次演示操作生效。' : '未执行任何文件写入。';
+      permissionActions.hidden = true;
+      showToast(allowed ? '已允许一次' : '已拒绝');
+    }
+    document.getElementById('allowPermission').addEventListener('click', () => resolvePermission(true));
+    document.getElementById('denyPermission').addEventListener('click', () => resolvePermission(false));
+
+    const threadSearch = document.getElementById('threadSearch');
+    threadSearch.addEventListener('input', () => {
+      const query = threadSearch.value.trim().toLowerCase();
+      document.querySelectorAll('.thread-item').forEach((item) => {
+        item.hidden = !item.dataset.search.toLowerCase().includes(query);
+      });
+    });
+
+    composerInput.addEventListener('input', () => sendButton.classList.toggle('ready', composerInput.value.trim().length > 0));
+    document.getElementById('composer').addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (!composerInput.value.trim()) return;
+      composerInput.value = '';
+      sendButton.classList.remove('ready');
+      showToast('本地原型：消息未发送到真实服务');
+    });
+
+    applyState('mixed');
+  </script>
+</body>
+</html>
