@@ -217,6 +217,48 @@ test('tool cards retain native behavior, contain details, and clean up across st
   await page.evaluate(() => { q('#label').textContent = 'Search'; q('#summary').textContent = 'useTheme'; });
   await wait('q("#label").dataset.pfToolTitle === "搜索"');
   assert.equal(await page.$eval('#summary', e => getComputedStyle(e).gridRowStart), '2');
+  await page.evaluate(() => {
+    q('#label').textContent = 'Explore'; q('#summary').textContent = 'Inspect the navigation flow';
+    q('#file').remove();
+    window.nativeGlyph = q('#icon svg');
+  });
+  await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 850)));
+  assert.equal(await page.$eval('#summary', e => getComputedStyle(e).gridRowStart), '1', 'Explore description must use a single row');
+  for (const width of [1342,390]) {
+    await page.setViewport({width,height:844});
+    for (const mode of ['light','dark']) {
+      await page.evaluate(mode => selectTheme(mode), mode);
+      await wait(`document.documentElement.dataset.pfActive === '${mode}'`);
+      assert.equal(await page.$eval('#label', e => e.getBoundingClientRect().width), 1);
+      assert.equal(await page.$eval('#icon svg', e => getComputedStyle(e).visibility), 'hidden');
+      assert.match(await page.$eval('#icon', e => getComputedStyle(e, '::before').maskImage), /data:image\/svg\+xml/);
+      assert.ok(await page.evaluate(() => {
+        const center = e => {const r=e.getBoundingClientRect();return (r.top+r.bottom)/2;};
+        return Math.abs(center(q('#summary'))-center(q('#icon'))) < 1 && Math.abs(center(q('#header'))-center(q('#icon'))) < 1;
+      }));
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
+      const ax = await page.accessibility.snapshot({root:await page.$('#header')});
+      assert.ok(ax.name.includes('Explore') && ax.name.includes('Inspect the navigation flow'));
+      if (process.env.SCREENSHOT_DIR) await page.screenshot({path:path.join(process.env.SCREENSHOT_DIR, `explore-${mode}-${width}.png`)});
+    }
+  }
+  await page.evaluate(() => nativeHeader.click());
+  await wait('!q(".details")');
+  await page.evaluate(() => nativeHeader.click());
+  await wait('!!q(".pf-tool-copy")');
+  await page.evaluate(() => q('#labels').insertAdjacentHTML('beforeend','<div id="explore-shimmer"><div dir="auto" class="shimmer-text">Explore</div></div>'));
+  await wait('q("#badge").dataset.pfToolState === "running"');
+  await page.evaluate(() => {q('#explore-shimmer').remove(); nativeGlyph.setAttribute('stroke','#ee4455');});
+  await wait('q("#badge").dataset.pfToolState === "failed"');
+  assert.equal(await page.$eval('#icon', e => getComputedStyle(e, '::before').backgroundColor), 'rgb(238, 68, 85)');
+  assert.equal(await page.evaluate(() => nativeGlyph === q('#icon svg')),true);
+  await page.evaluate(() => {q('#summary').textContent = '';});
+  await wait('!q("#badge").hasAttribute("data-pf-explore-preview")');
+  assert.ok(await page.$eval('#label', e => e.getBoundingClientRect().width > 1));
+  await page.evaluate(() => {q('#label').textContent='Explore more'; q('#summary').textContent='Other agent'; nativeGlyph.setAttribute('stroke','#888');});
+  await wait('!q("#badge").hasAttribute("data-pf-explore-tool")');
+  assert.equal(await page.$eval('#icon svg', e => getComputedStyle(e).visibility), 'visible');
+  assert.equal(await page.$eval('#summary', e => getComputedStyle(e).gridRowStart), '2');
   await page.evaluate(() => { q('#label').textContent = 'Thinking'; });
   await wait('q("#badge").dataset.pfTool === "thinking" && q(".details").hasAttribute("data-pf-thinking-details")');
   await page.evaluate(() => { q('#label').textContent = 'Shell'; });

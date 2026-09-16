@@ -347,6 +347,8 @@ function createAdapter(): Shared {
       mark(header, 'tool-header', interactive && !header.disabled ? 'interactive' : 'static');
       mark(row, 'tool-row'); mark(icon, 'tool-icon'); mark(labels, 'tool-labels');
       mark(label, 'tool-label');
+      const explore = kind === 'tool' && name === 'Explore';
+      if (explore) mark(badge, 'explore-tool');
       if (kind !== 'group' && Object.hasOwn(TOOL_LABELS, name)) mark(label, 'tool-title', TOOL_LABELS[name]);
       if (summary?.matches('[dir="auto"]')) {
         mark(summary, 'tool-summary');
@@ -354,6 +356,7 @@ function createAdapter(): Shared {
         if (kind === 'tool' && ['Read', 'Edit', 'Write'].includes(name) && summary.textContent?.trim()) {
           mark(badge, 'file-preview');
         }
+        if (explore && summary.textContent?.trim()) mark(badge, 'explore-preview');
       }
       // Loading has a native duplicate-text shimmer overlay. Keep the React-owned overlay for
       // state detection but replace its visual shimmer with one restrained status indicator.
@@ -762,17 +765,26 @@ html[data-pf-active] [data-pf-command-preview] [data-pf-tool-summary] {
  white-space:pre!important; text-align:left!important;
 }
 html[data-pf-active] [data-pf-command-preview] [data-pf-tool-open-file] { grid-row:1!important; }
-/* File operations show their native icon and path. Keep the action name available to
-   assistive technology, including when the host temporarily shows a disclosure icon. */
-html[data-pf-active] [data-pf-file-preview] [data-pf-tool-label] {
+/* Keep visually hidden tool names available to assistive technology. */
+html[data-pf-active] :is([data-pf-file-preview],[data-pf-explore-preview]) > [data-pf-tool-header] [data-pf-tool-label] {
  position:absolute!important; width:1px!important; height:1px!important; margin:-1px!important;
  padding:0!important; border:0!important; overflow:hidden!important; clip-path:inset(50%)!important;
 }
-html[data-pf-active] [data-pf-file-preview] [data-pf-tool-summary] {
+html[data-pf-active] :is([data-pf-file-preview],[data-pf-explore-preview]) > [data-pf-tool-header] [data-pf-tool-summary] {
  grid-row:1!important; height:20px!important; font-size:13px!important; line-height:20px!important;
  text-align:left!important;
 }
 html[data-pf-active] [data-pf-file-preview] [data-pf-tool-open-file] { grid-row:1!important; }
+/* Preserve the native glyph for status detection while drawing Explore's search icon. */
+html[data-pf-active] [data-pf-explore-tool] > [data-pf-tool-header] [data-pf-tool-icon] { position:relative!important; }
+html[data-pf-active] [data-pf-explore-tool] > [data-pf-tool-header] [data-pf-tool-icon] svg { visibility:hidden!important; }
+html[data-pf-active] [data-pf-explore-tool] > [data-pf-tool-header] [data-pf-tool-icon]::before {
+ content:""; position:absolute; width:16px; height:16px; top:2px; left:1px; pointer-events:none;
+ background:var(--pf-secondary);
+ mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m16 16 5 5'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+html[data-pf-active] [data-pf-explore-tool][data-pf-tool-state="running"] > [data-pf-tool-header] [data-pf-tool-icon]::before { background:var(--pf-accent); }
+html[data-pf-active] [data-pf-explore-tool][data-pf-tool-state="failed"] > [data-pf-tool-header] [data-pf-tool-icon]::before { background:var(--colors-destructive,var(--pf-text)); }
 @media(min-width:760px) {
  html[data-pf-active] [data-pf-response-part] { margin-left:42px!important; width:calc(100% - 42px)!important; }
  html[data-pf-active] [data-pf-response-avatar]::before {

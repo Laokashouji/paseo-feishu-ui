@@ -1,3 +1,11 @@
+# Claude Code Explore previews — 0.3.3, 2026-09-16
+
+- Explore headers now show a search icon and a single description line. The accessible title remains; an empty description restores the visible title. Exact name matching leaves other subagent types unchanged. The native icon stays in the DOM for status detection.
+- Typecheck, native-entry smoke tests and browser regression passed. Light/dark fixtures at 1342px and 390px covered centering, accessibility, overflow, expansion, running/failed states, missing descriptions, node reuse, theme isolation and multi-owner cleanup. Browser screenshots were reviewed.
+- In installed macOS Paseo 0.8.0, two actual Claude Code Explore cards changed from 58px to 48px tall; icon/text/header center differences changed from 10px to 0. The chat measured 608px for both client width and scroll width. A private native screenshot confirmed both single-line search previews. One card expanded to native details, retained its header identity, and was collapsed again; the original scroll position was restored.
+- The local plugin was reloaded with the second host temporarily disabled to release the shared adapter. Both hosts were then enabled. The temporary diagnostic plugin was removed, its client list emptied and its loopback bridge stopped; no daemon restart was needed.
+- Live Explore streaming/failures, native light/compact rendering and iOS/Android hardware were not exercised. State/compact checks above use browser fixtures; official native mobile support remains palette-only.
+
 # File operation icon/path previews — 0.3.2, 2026-09-14
 
 - Read, Edit and Write headers now show the native icon and one line of path text. Missing/empty paths keep the action heading; paths are not rewritten. The visually hidden action name remains in Chrome's accessibility tree, and native file/disclosure handlers retain their identity.

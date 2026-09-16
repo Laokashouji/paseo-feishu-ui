@@ -1,6 +1,6 @@
 {
   "name": "paseo-feishu-ui",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "description": "Feishu themes and desktop skin for Paseo 0.8; native mobile palette support",
   "type": "module",

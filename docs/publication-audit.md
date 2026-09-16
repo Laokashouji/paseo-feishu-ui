@@ -1,6 +1,6 @@
-# Public release audit — 2026-09-14
+# Public release audit — 2026-09-16
 
-The public snapshot contains the 0.3.2 plugin implementation and reviewed design/test artifacts. The 0.3.2 update adds file icon/path previews and browser coverage; it introduces no runtime imports, network calls or dependencies.
+The public snapshot contains the 0.3.3 plugin implementation and reviewed design/test artifacts. The 0.3.3 update adds single-line Explore descriptions, a search icon and browser coverage; it introduces no runtime imports, network calls or dependencies.
 
 ## Runtime dependencies and data flow
 

@@ -32,6 +32,7 @@ Git pushes do not automatically update installed copies. For local source develo
 - A continuous visual bubble for adjacent thinking, tool, and assistant body rows, with one avatar gutter. Native rows retain their identity and virtualization.
 - Command cards show the first command line. Thinking cards show the first nonempty line of text exposed by the provider, with expand/collapse and full-text copy.
 - Read, Edit and Write cards show the native icon and path on one line, with ellipsis for long paths. The action name stays accessible to screen readers; missing paths keep the heading.
+- Claude Code Explore cards show a search icon and one description line. The visible Explore heading is hidden when a description exists; native details, disclosure and status cues remain.
 - Native tool details, file actions, permissions, attachments, composer and agent execution remain owned by Paseo.
 - Exact theme gating and shared adapter cleanup across connected hosts.
 
