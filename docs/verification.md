@@ -1,3 +1,10 @@
+# Task snapshot continuity — 0.3.4, 2026-09-17
+
+- Read-only inspection of the reported conversation found five `todo_list` rows between Taskcreate/Taskupdate calls. All five lacked response frames; their neighboring tool cards ended or restarted a bubble. The rows had one content child, shared a parent, and had no virtual index gaps. The installed Paseo 0.8.0 bundle confirms TodoListCard uses ExpandableBadge without the tool badge test ID.
+- The adapter now recognizes the native `todo_` row prefix plus the direct content/card structure and existing header guards. Task snapshots receive the tool-card styling and join the shared response. No native node or handler is replaced. Frame membership uses current-pass tool recognition so recycled nodes cannot retain stale bubble edges.
+- `npm run test:browser` failed before the fix with `[single, null, single, null]` instead of `[start, middle, middle, middle]`. It now passes at 1342px and 390px in both themes, with zero edge gaps, aligned widths, one avatar, native keyboard expansion/focus, footer and virtual-gap boundaries, permission/user exclusions, and recycled/malformed row cleanup. Synthetic screenshots were reviewed. Typecheck and native-entry smoke tests pass.
+- The local plugin was reloaded after temporarily disabling the other host's installation to release the shared adapter; the other installation was then enabled again. Native post-fix visual verification remains pending: the desktop renderer reported `document.visibilityState === "hidden"` and did not paint the requested navigation, so its captured image is not post-fix evidence. The original workspace route was restored; drafts, theme, scroll position, and daemon lifetime were not changed. Live task streaming and native iOS/Android hardware were not exercised; native mobile remains palette-only.
+
 # Claude Code Explore previews — 0.3.3, 2026-09-16
 
 - Explore headers now show a search icon and a single description line. The accessible title remains; an empty description restores the visible title. Exact name matching leaves other subagent types unchanged. The native icon stays in the DOM for status detection.

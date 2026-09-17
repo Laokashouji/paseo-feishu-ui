@@ -4,6 +4,8 @@ Current integration target: Paseo 0.8.0, inspected 2026-09-11. The plugin has a 
 
 The native appearance gap is documented in [native mobile support](native-mobile-support.md). Theme palettes are supported, but a complete native message skin cannot preserve current message behavior through the public 0.8.0 renderer contract.
 
+Paseo 0.8.0 task-list snapshots use `todo_` history row IDs and render TodoListCard through ExpandableBadge without a `tool-call-badge` test ID. The desktop adapter validates the direct row/frame/card path and the common native header structure before joining these snapshots into response frames. Unknown shapes remain native; user, permission, compaction and completed-turn boundaries are not included merely because they are adjacent to tools.
+
 The following 0.7.2 research is historical evidence for the original adapter; API names and navigation claims must be checked against the installed 0.8 SDK before new changes.
 
 ## Sources

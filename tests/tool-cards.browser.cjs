@@ -130,6 +130,83 @@ test('tool cards retain native behavior, contain details, and clean up across st
   assert.equal(await page.$eval('#source', e => e.firstElementChild.dataset.pfResponsePart), 'single');
   await page.evaluate(() => { q('#source').removeAttribute('data-index'); q('#answer0').closest('[data-history-row-id]').removeAttribute('data-index'); dispatchEvent(new Event('resize')); });
   await wait('q("#source").firstElementChild.dataset.pfResponsePart === "start"');
+  // Paseo emits todo_list snapshots between Taskcreate/Taskupdate calls. Unlike a
+  // tool badge, TodoListCard's ExpandableBadge has no data-testid.
+  await page.evaluate(() => {
+    q('#source').insertAdjacentHTML('afterend', `
+      <div data-history-row-id="todo_1" id="todo-source"><div><div id="todo-badge">
+        <button id="todo-header"><div><div><svg stroke="#888"><path d="M1 1L5 5"/></svg></div>
+        <div><div dir="auto">Created 1 task</div></div></div></button>
+      </div></div></div>
+      <div data-history-row-id="tool:create" id="task-source"><div><div data-testid="tool-call-badge">
+        <button><div><div><svg stroke="#888"/></div><div><div dir="auto">Taskcreate</div></div></div></button>
+      </div></div></div>
+      <div data-history-row-id="todo_2" id="todo-added"><div><div>
+        <button><div><div><svg stroke="#888"/></div><div><div dir="auto">Added task</div><div dir="auto">Check layout</div></div></div></button>
+      </div></div></div>`);
+    window.nativeTodoHeader = q('#todo-header'); window.todoToggles = 0;
+    nativeTodoHeader.onclick = () => {
+      todoToggles++;
+      if (q('#todo-details')) q('#todo-details').remove();
+      else q('#todo-badge').insertAdjacentHTML('beforeend','<div id="todo-details"><div><div dir="auto">Check layout</div></div></div>');
+    };
+  });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const responseParts = () => page.evaluate(() => ['source','todo-source','task-source','todo-added']
+    .map(id => q('#'+id).firstElementChild.dataset.pfResponsePart ?? null));
+  assert.deepEqual(await responseParts(), ['start','middle','middle','middle'], 'task snapshots must not split the assistant bubble');
+  for (const width of [1342,390]) {
+    await page.setViewport({width,height:844});
+    for (const mode of ['light','dark']) {
+      await page.evaluate(mode => selectTheme(mode), mode);
+      await wait(`document.documentElement.dataset.pfActive === '${mode}'`);
+      const measure = () => page.evaluate(() => {
+        const frames = ['source','todo-source','task-source','todo-added'].map(id => q('#'+id).firstElementChild)
+          .concat([q('#answer0').parentElement,q('#answer1').parentElement]);
+        const boxes = frames.map(e => e.getBoundingClientRect());
+        return {parts:frames.map(e=>e.dataset.pfResponsePart), gaps:boxes.slice(1).map((b,i)=>b.top-boxes[i].bottom),
+          aligned:boxes.every(b=>b.x===boxes[0].x&&b.width===boxes[0].width),
+          avatars:frames.filter(e=>e.hasAttribute('data-pf-response-avatar')).length,
+          overflow:document.documentElement.scrollWidth>innerWidth};
+      });
+      const expected = {parts:['start','middle','middle','middle','middle','end'], gaps:[0,0,0,0,0],aligned:true,avatars:1,overflow:false};
+      assert.deepEqual(await measure(),expected);
+      await page.focus('#todo-header');
+      await page.keyboard.press('Enter');
+      await wait('q("#todo-details")?.hasAttribute("data-pf-tool-details")');
+      assert.deepEqual(await measure(),expected);
+      assert.equal(await page.evaluate(() => nativeTodoHeader===q('#todo-header')&&document.activeElement===nativeTodoHeader),true);
+      assert.equal(await page.$('#todo-details .pf-tool-copy'),null);
+      if (process.env.SCREENSHOT_DIR) await page.screenshot({path:path.join(process.env.SCREENSHOT_DIR, `todo-${mode}-${width}.png`)});
+      await page.keyboard.press('Enter');
+      await wait('!q("#todo-details")');
+    }
+  }
+  // A recycled row or changed host shape must retire todo decorations.
+  await page.evaluate(() => {q('#todo-source').dataset.historyRowId='compaction_1';dispatchEvent(new Event('resize'));});
+  await wait('!q("#todo-badge").hasAttribute("data-pf-tool")');
+  assert.equal((await responseParts())[1],null);
+  await page.evaluate(() => {q('#todo-source').dataset.historyRowId='todo_1';q('#todo-header').append(document.createElement('div'));});
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.equal((await responseParts())[1],null);
+  await page.evaluate(() => q('#todo-header').lastElementChild.remove());
+  await wait('q("#todo-badge").dataset.pfTool === "todo"');
+  // Keep footer, virtual-gap, permission and user boundaries even beside tasks.
+  await page.evaluate(() => q('#todo-source').insertAdjacentHTML('beforeend','<div id="todo-footer"></div>'));
+  await wait('q("#todo-source").firstElementChild.dataset.pfResponsePart === "end"');
+  assert.equal((await responseParts())[2],'start');
+  await page.evaluate(() => {q('#todo-footer').remove();q('#todo-source').dataset.index='1';q('#task-source').dataset.index='3';});
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert.equal((await responseParts())[2],'start');
+  await page.evaluate(() => {q('#todo-source').removeAttribute('data-index');q('#task-source').removeAttribute('data-index');});
+  for (const testid of ['permission-request-question','question-form-card','user-message']) {
+    await page.evaluate(testid => q('#todo-badge').insertAdjacentHTML('beforeend',`<div id="todo-boundary" data-testid="${testid}"></div>`),testid);
+    await wait('!q("#todo-source").firstElementChild.hasAttribute("data-pf-response-part")');
+    await page.evaluate(() => q('#todo-boundary').remove());
+    await wait('q("#todo-source").firstElementChild.dataset.pfResponsePart === "middle"');
+  }
+  await page.evaluate(() => {q('#todo-source').remove();q('#task-source').remove();q('#todo-added').remove();});
+  await wait('q("#answer0").parentElement.dataset.pfResponsePart === "middle"');
   await page.evaluate(() => { q('#file').click(); nativeHeader.click(); });
   await wait('!!q(".pf-tool-copy")');
   assert.deepEqual(await page.evaluate(() => ({same:nativeHeader === q('#header'), toggles:toggleCalls, files:fileCalls})), {same:true,toggles:1,files:1});

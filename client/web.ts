@@ -299,7 +299,10 @@ function createAdapter(): Shared {
     const eligible = rows.map(row => {
       const frame = row.firstElementChild;
       if (!flowColumn(frame)) return null;
-      const body = frame.querySelector('[data-testid="assistant-message"],[data-pf-tool],[data-testid="feishu-thinking-card"]');
+      // Use this pass's tool recognition: a recycled row may still carry an old marker
+      // until retireMarks runs at the end of reconciliation.
+      const body = frame.querySelector('[data-testid="assistant-message"],[data-testid="feishu-thinking-card"]') ??
+        [...frame.querySelectorAll('[data-pf-tool]')].find(tool => desired.get(tool)?.has('data-pf-tool'));
       if (!body || body.closest('[data-history-row-id]') !== row ||
           frame.querySelector('[data-testid="user-message"],[data-testid^="permission-"],[data-testid="question-form-card"]')) return null;
       return frame;
@@ -328,7 +331,20 @@ function createAdapter(): Shared {
       if (text.textContent?.trim()) mark(text, 'thinking-text');
     }
     const danger = getComputedStyle(document.documentElement).getPropertyValue('--colors-destructive').trim().toLowerCase();
-    for (const badge of scope.querySelectorAll<HTMLElement>(`${selector('tool-call-badge')},${selector('tool-call-group')}`)) {
+    // TodoListCard uses the same ExpandableBadge without a testID in Paseo 0.8.
+    // Validate its direct row/frame/card path, then apply the shared header guards below.
+    // Do not infer a task from translated labels or treat arbitrary timeline rows as tools.
+    const todoBadges = new Set<HTMLElement>();
+    for (const source of scope.querySelectorAll<HTMLElement>('[data-history-row-id^="todo_"]')) {
+      const frame = source.firstElementChild;
+      const badge = frame?.firstElementChild ?? null;
+      if (flowColumn(frame) && frame.children.length === 1 && flowColumn(badge) &&
+          badge.closest('[data-history-row-id]') === source && !badge.hasAttribute('data-testid')) {
+        todoBadges.add(badge);
+      }
+    }
+    const badges = new Set([...scope.querySelectorAll<HTMLElement>(`${selector('tool-call-badge')},${selector('tool-call-group')}`), ...todoBadges]);
+    for (const badge of badges) {
       // Detail sheets may contain their own native badges. Only process the current transcript.
       if (badge.closest(selector('agent-chat-scroll')) !== scope.closest(selector('agent-chat-scroll'))) continue;
       const header = badge.firstElementChild;
@@ -342,7 +358,7 @@ function createAdapter(): Shared {
       if (!name) continue;
       const interactive = header.tagName === 'BUTTON' || header.getAttribute('role') === 'button';
       const summary = label.nextElementSibling;
-      const kind = name === THINKING_LABEL ? 'thinking' : badge.matches(selector('tool-call-group')) ? 'group' : 'tool';
+      const kind = todoBadges.has(badge) ? 'todo' : name === THINKING_LABEL ? 'thinking' : badge.matches(selector('tool-call-group')) ? 'group' : 'tool';
       mark(badge, 'tool', kind);
       mark(header, 'tool-header', interactive && !header.disabled ? 'interactive' : 'static');
       mark(row, 'tool-row'); mark(icon, 'tool-icon'); mark(labels, 'tool-labels');
@@ -386,7 +402,7 @@ function createAdapter(): Shared {
       if (expanded) {
         mark(details, 'tool-details');
         if (kind === 'thinking') mark(details, 'thinking-details');
-        if (kind !== 'group') {
+        if (kind !== 'group' && kind !== 'todo') {
           mark(details, 'tool-copyable');
           let copy = copyButtons.get(details);
           if (!copy?.isConnected) {
