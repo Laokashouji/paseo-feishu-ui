@@ -171,6 +171,19 @@ test('tool cards retain native behavior, contain details, and clean up across st
       });
       const expected = {parts:['start','middle','middle','middle','middle','end'], gaps:[0,0,0,0,0],aligned:true,avatars:1,overflow:false};
       assert.deepEqual(await measure(),expected);
+      // Task activities share one-line previews independent of the localized status label.
+      for (const label of ['已添加','已开始','已完成','Added task']) {
+        await page.evaluate(label => {q('#todo-added [dir="auto"]').textContent=label;},label);
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        assert.deepEqual(await page.$eval('#todo-added', row => {
+          const header=row.querySelector('button'),label=header.querySelector('[data-pf-tool-label]'),summary=header.querySelector('[data-pf-tool-summary]'),icon=header.querySelector('[data-pf-tool-icon]');
+          const center=e=>{const r=e.getBoundingClientRect();return (r.top+r.bottom)/2;};
+          return {labelWidth:label.getBoundingClientRect().width,summaryRow:getComputedStyle(summary).gridRowStart,
+            centered:Math.abs(center(summary)-center(icon))<1&&Math.abs(center(summary)-center(header))<1};
+        }),{labelWidth:1,summaryRow:'1',centered:true});
+        const ax=await page.accessibility.snapshot({root:await page.$('#todo-added button')});
+        assert.ok(ax.name.includes(label)&&ax.name.includes('Check layout'));
+      }
       await page.focus('#todo-header');
       await page.keyboard.press('Enter');
       await wait('q("#todo-details")?.hasAttribute("data-pf-tool-details")');
@@ -182,6 +195,12 @@ test('tool cards retain native behavior, contain details, and clean up across st
       await wait('!q("#todo-details")');
     }
   }
+  await page.evaluate(() => {q('#todo-added [data-pf-tool-summary]').textContent='  ';});
+  await wait('!q("#todo-added [data-pf-tool]").hasAttribute("data-pf-todo-preview")');
+  assert.ok(await page.$eval('#todo-added [data-pf-tool-label]',e=>e.getBoundingClientRect().width>1));
+  assert.ok(await page.$eval('#todo-source [data-pf-tool-label]',e=>e.getBoundingClientRect().width>1),'created-count-only cards retain their only heading');
+  await page.evaluate(() => {q('#todo-added [data-pf-tool-summary]').textContent='Check layout';});
+  await wait('q("#todo-added [data-pf-tool]").hasAttribute("data-pf-todo-preview")');
   // A recycled row or changed host shape must retire todo decorations.
   await page.evaluate(() => {q('#todo-source').dataset.historyRowId='compaction_1';dispatchEvent(new Event('resize'));});
   await wait('!q("#todo-badge").hasAttribute("data-pf-tool")');
