@@ -1,3 +1,9 @@
+# Search and task notification previews — 0.3.6, 2026-09-21
+
+- Search and Task notification now display the native icon and nonempty summary on one line. Their visual heading is hidden but remains accessible; whitespace-only summaries restore the heading. Exact tool-name matching leaves other tool kinds and groups unchanged. Native file controls use the same single row when present.
+- Typecheck, native-entry smoke tests and browser regression pass. The new browser assertions failed before the fix on visible two-line headings and unequal icon/text centers, then passed in light/dark themes at 1342px and 390px. Checks cover long-summary clipping without document overflow, accessible names, retained native icons and disclosure handlers, empty-summary fallback, and node reuse. Synthetic screenshots were reviewed.
+- On September 21 the local daemon was reachable again. Typecheck, native-entry smoke tests and browser regression passed again. The local plugin reloaded successfully after the remote installation was temporarily disabled to release the shared adapter; the remote installation was then re-enabled. The desktop reported the dark theme, two owners and a 1268px chat with no horizontal overflow. The reported conversation's tab and Search/Task notification cards were not mounted during this check, so post-fix native card appearance remains unverified. The temporary diagnostic plugin was removed with no connected clients left; no daemon restart was needed. Native compact/light rendering and mobile hardware remain outside this verification.
+
 # Task activity previews — 0.3.5, 2026-09-18
 
 - Task snapshots with nonempty task text now hide the visual status heading and align the native icon with a single task-content line. Matching uses the validated task-card kind, not localized words. Count-only and blank-description cards retain their heading; status labels remain in the accessibility tree.

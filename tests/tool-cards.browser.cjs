@@ -310,9 +310,40 @@ test('tool cards retain native behavior, contain details, and clean up across st
   await page.evaluate(() => { q('#summary').textContent = ''; });
   await wait('!q("#badge").hasAttribute("data-pf-file-preview")');
   assert.ok(await page.$eval('#label', e => e.getBoundingClientRect().width > 1));
-  await page.evaluate(() => { q('#label').textContent = 'Search'; q('#summary').textContent = 'useTheme'; });
-  await wait('q("#label").dataset.pfToolTitle === "搜索"');
-  assert.equal(await page.$eval('#summary', e => getComputedStyle(e).gridRowStart), '2');
+  // Search and task notifications use their original summary and glyph on one line.
+  for (const name of ['Search','Task notification']) {
+    const summary = 'Inspect the result ' + 'long-summary-'.repeat(80);
+    await page.evaluate(({name,summary}) => {q('#label').textContent=name;q('#summary').textContent=summary;}, {name,summary});
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    for (const width of [1342,390]) {
+      await page.setViewport({width,height:844});
+      for (const mode of ['light','dark']) {
+        await page.evaluate(mode => selectTheme(mode), mode);
+        await wait(`document.documentElement.dataset.pfActive === '${mode}'`);
+        assert.deepEqual(await page.evaluate(() => {
+          const center=e=>{const r=e.getBoundingClientRect();return (r.top+r.bottom)/2;};
+          return {hidden:q('#label').getBoundingClientRect().width===1,row:getComputedStyle(q('#summary')).gridRowStart,
+            centered:Math.abs(center(q('#summary'))-center(q('#icon')))<1&&Math.abs(center(q('#summary'))-center(q('#header')))<1,
+            clipped:q('#summary').scrollWidth>q('#summary').clientWidth,overflow:document.documentElement.scrollWidth>innerWidth,
+            glyph:getComputedStyle(q('#icon svg')).visibility};
+        }),{hidden:true,row:'1',centered:true,clipped:true,overflow:false,glyph:'visible'});
+        const ax=await page.accessibility.snapshot({root:await page.$('#header')});
+        assert.ok((ax.name.includes(name)||ax.name.includes('搜索'))&&ax.name.includes(summary));
+        if(process.env.SCREENSHOT_DIR)await page.screenshot({path:path.join(process.env.SCREENSHOT_DIR, `${name.toLowerCase().replaceAll(' ','-')}-${mode}-${width}.png`)});
+      }
+    }
+    await page.evaluate(() => nativeHeader.click());
+    await wait('!q(".details")');
+    await page.evaluate(() => nativeHeader.click());
+    await wait('!!q(".pf-tool-copy")');
+    assert.equal(await page.evaluate(() => nativeHeader===q('#header')),true);
+    await page.evaluate(() => {q('#summary').textContent='  ';});
+    await wait('!q("#badge").hasAttribute("data-pf-summary-preview")');
+    assert.ok(await page.$eval('#label',e=>e.getBoundingClientRect().width>1));
+    await page.evaluate(({name,summary})=>{q('#label').textContent=name+' other';q('#summary').textContent=summary;},{name,summary});
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.equal(await page.$eval('#summary',e=>getComputedStyle(e).gridRowStart),'2');
+  }
   await page.evaluate(() => {
     q('#label').textContent = 'Explore'; q('#summary').textContent = 'Inspect the navigation flow';
     q('#file').remove();

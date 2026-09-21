@@ -374,6 +374,9 @@ function createAdapter(): Shared {
         }
         if (explore && summary.textContent?.trim()) mark(badge, 'explore-preview');
         if (kind === 'todo' && summary.textContent?.trim()) mark(badge, 'todo-preview');
+        if (kind === 'tool' && ['Search', 'Task notification'].includes(name) && summary.textContent?.trim()) {
+          mark(badge, 'summary-preview');
+        }
       }
       // Loading has a native duplicate-text shimmer overlay. Keep the React-owned overlay for
       // state detection but replace its visual shimmer with one restrained status indicator.
@@ -783,15 +786,15 @@ html[data-pf-active] [data-pf-command-preview] [data-pf-tool-summary] {
 }
 html[data-pf-active] [data-pf-command-preview] [data-pf-tool-open-file] { grid-row:1!important; }
 /* Keep visually hidden tool names available to assistive technology. */
-html[data-pf-active] :is([data-pf-file-preview],[data-pf-explore-preview],[data-pf-todo-preview]) > [data-pf-tool-header] [data-pf-tool-label] {
+html[data-pf-active] :is([data-pf-file-preview],[data-pf-explore-preview],[data-pf-todo-preview],[data-pf-summary-preview]) > [data-pf-tool-header] [data-pf-tool-label] {
  position:absolute!important; width:1px!important; height:1px!important; margin:-1px!important;
  padding:0!important; border:0!important; overflow:hidden!important; clip-path:inset(50%)!important;
 }
-html[data-pf-active] :is([data-pf-file-preview],[data-pf-explore-preview],[data-pf-todo-preview]) > [data-pf-tool-header] [data-pf-tool-summary] {
+html[data-pf-active] :is([data-pf-file-preview],[data-pf-explore-preview],[data-pf-todo-preview],[data-pf-summary-preview]) > [data-pf-tool-header] [data-pf-tool-summary] {
  grid-row:1!important; height:20px!important; font-size:13px!important; line-height:20px!important;
  text-align:left!important;
 }
-html[data-pf-active] [data-pf-file-preview] [data-pf-tool-open-file] { grid-row:1!important; }
+html[data-pf-active] :is([data-pf-file-preview],[data-pf-summary-preview]) [data-pf-tool-open-file] { grid-row:1!important; }
 /* Preserve the native glyph for status detection while drawing Explore's search icon. */
 html[data-pf-active] [data-pf-explore-tool] > [data-pf-tool-header] [data-pf-tool-icon] { position:relative!important; }
 html[data-pf-active] [data-pf-explore-tool] > [data-pf-tool-header] [data-pf-tool-icon] svg { visibility:hidden!important; }
