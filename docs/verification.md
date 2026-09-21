@@ -1,3 +1,10 @@
+# Duplicate custom tool titles — 0.3.7, 2026-09-21
+
+- The reported desktop card used the normal native tool badge shape but a custom title outside the existing single-line name list. Its title and identifier summary differed only in casing and separators. The current 0.3.6 adapter was loaded, ruling out a stale client. The live failing check measured a 56px header, a second-row summary and a 10px icon/text offset.
+- Individual tool badges now use the original summary on one line when the title is equivalent after normalizing case and space/underscore/hyphen separators. Native glyphs, complete text, accessibility and handlers remain intact. Distinct descriptions, blank summaries, thinking and aggregate groups retain their existing presentation.
+- The browser regression failed before the change and passes afterward in both themes at 1342px/390px. It covers duplicate snake/kebab/exact titles, centering, accessibility, native keyboard disclosure/focus, blank/different-summary fallback and recycled group/tool nodes. Typecheck and native-entry smoke tests pass; synthetic screenshots were reviewed.
+- After reloading locally with the other host temporarily disabled, the same mounted native header changed from 56px to 46px. Its original header node remained intact; the original summary became a 20px first row with zero icon/text/header center difference. The other host was re-enabled. This verifies the reported card's actual dark-theme layout while it was offscreen, not an on-screen screenshot. Native light/compact and mobile hardware were not exercised; native iOS remains palette-only.
+
 # Search and task notification previews — 0.3.6, 2026-09-21
 
 - Search and Task notification now display the native icon and nonempty summary on one line. Their visual heading is hidden but remains accessible; whitespace-only summaries restore the heading. Exact tool-name matching leaves other tool kinds and groups unchanged. Native file controls use the same single row when present.

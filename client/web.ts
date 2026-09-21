@@ -85,6 +85,7 @@ type Shared = { owners: Map<symbol, PluginClientContext>; refresh: () => void; r
 type SkinWindow = Window & { [REGISTRY]?: Shared };
 const selector = (id: string) => `[data-testid="${CSS.escape(id)}"]`;
 const visible = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+const normalizedToolTitle = (text: string) => text.toLowerCase().replace(/[\s_-]+/g, ' ').trim();
 
 /** This adapter owns only markers, CSS and auxiliary navigation. Native nodes never move. */
 export const installFeishuSkin: PluginClientContribution = (plugin) => {
@@ -374,8 +375,12 @@ function createAdapter(): Shared {
         }
         if (explore && summary.textContent?.trim()) mark(badge, 'explore-preview');
         if (kind === 'todo' && summary.textContent?.trim()) mark(badge, 'todo-preview');
-        if (kind === 'tool' && ['Search', 'Task notification'].includes(name) && summary.textContent?.trim()) {
-          mark(badge, 'summary-preview');
+        if (kind === 'tool' && summary.textContent?.trim()) {
+          // Custom tool titles can be a humanized copy of the original identifier summary.
+          const title = normalizedToolTitle(name);
+          if (['Search', 'Task notification'].includes(name) || (title && title === normalizedToolTitle(summary.textContent))) {
+            mark(badge, 'summary-preview');
+          }
         }
       }
       // Loading has a native duplicate-text shimmer overlay. Keep the React-owned overlay for
