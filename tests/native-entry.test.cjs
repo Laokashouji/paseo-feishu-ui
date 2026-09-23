@@ -40,7 +40,7 @@ function loadNativeEntry(platform) {
 }
 
 for (const platform of ['ios', 'android']) {
-  test(`${platform} loads the 0.8 entry without browser globals`, () => {
+  test(`${platform} loads the client entry without browser globals`, () => {
     const registered = { themes: [], surfaces: [], screens: [], commands: [] };
     const client = {
       addTheme(value) { registered.themes.push(value); return () => {}; },

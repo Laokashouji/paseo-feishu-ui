@@ -1,4 +1,4 @@
-# Native mobile skin: official Paseo 0.8.0
+# Native mobile skin: official Paseo 0.8–0.9
 
 Status: blocked on a host API, not implemented. The user uses the official iOS App only and will upgrade it to 0.8.0. An iPhone is not available for debugging. Do not present the desktop's narrow-window checks as iOS verification.
 
@@ -48,3 +48,7 @@ The Node smoke test executes the actual migrated plugin entry with iOS/Android p
 Version 0.3.0 implements the approved OpenDesign card appearance in the desktop/browser adapter. Official native iOS/Android still receive the palettes only. The public 0.8 timeline replacement API cannot delegate to the native `ToolCall`/`ToolCallDetailsContent`, file-open actions, Markdown and detail sheets; renderer props also lack the selected contributed-theme identity needed for exact theme gating. Replacing those rows would require reimplementing native behavior. No such replacement is registered. The mobile HTML design and browser fixture demonstrate a visual direction; they do not add or verify an official iOS capability.
 
 Version 0.3.1 introduces a reasoning-only public renderer gated by the web adapter's exact theme selection. It does not change native iOS/Android behavior. Desktop reasoning can safely preserve its plain text with a custom expander; full native bubble/tool skinning remains subject to the boundary above.
+
+## 0.9.1 compatibility audit — 2026-09-23
+
+The published 0.9.1 client contracts retain the same theme palette and timeline renderer props. The added host navigation/browser helpers do not add native bubble styling or a way to delegate a replacement to the original message renderer. Version 0.3.8 permits official Paseo 0.8.x and 0.9.x; native support remains palette-only. No iPhone was available for a hardware check.

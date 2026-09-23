@@ -16,7 +16,7 @@ Claude Code 的 Explore 卡片采用“搜索图标＋任务描述”单行展�
 
 ## 安装
 
-适配 Paseo **0.8.0**（App 和 daemon 均需升级；不兼容 0.7），使用 Node.js 20.19.4 或更高版本。
+适配 Paseo **0.8.x / 0.9.x**，已核对 0.8.0 和 0.9.1。App 和 daemon 均需处于支持范围；暂不声明支持 0.7 或 0.10 及以上版本。使用 Node.js 20.19.4 或更高版本。
 
 ```sh
 paseo plugin install Laokashouji/paseo-feishu-ui --ref main
@@ -41,9 +41,9 @@ paseo plugin install Laokashouji/paseo-feishu-ui --ref main
 
 思考、工具与正文按原生顺序连接为一张连续的助手气泡，统一避开头像留白。命令卡片只显示第一行命令；思考卡片显示模型已提供的第一行思考内容。运行中为蓝色，工具失败为红色，同时适配浅色与暗黑主题。展开后可复制完整详情，长命令在详情内部横向滚动；原生文件操作与权限确认继续保留。静止工具条目显示“详情”，不把取消误标为成功。窄屏工具仍按 Paseo 的原生行为打开详情面板；思考在原位展开。
 
-思考预览使用 Paseo 0.8 的公开渲染接口，需要在会话所属主机也安装同版插件。它仅在桌面/网页选中飞书主题时注册，其他主题恢复原生思考条目；正文、工具、权限和附件没有被替换。
+思考预览使用 Paseo 0.8–0.9 的公开渲染接口，需要在会话所属主机也安装同版插件。它仅在桌面/网页选中飞书主题时注册，其他主题恢复原生思考条目；正文、工具、权限和附件没有被替换。
 
-输入框、快捷键、草稿、附件、权限确认和代码交互由 Paseo 管理。**iOS/Android 当前仅支持配色**，聊天气泡、思考与工具卡片、消息间距、输入框和导航尚未换肤。官方 0.8.0 没有原生消息样式接口；直接替换消息会丢失附件和回退等原生行为，故本插件保留原生消息。升级到 0.8.0 不会自动获得手机气泡。参见[原生适配所缺接口](docs/native-mobile-support.md)和[已提交的上游需求 #4697](https://github.com/getpaseo/paseo/issues/4697)。
+输入框、快捷键、草稿、附件、权限确认和代码交互由 Paseo 管理。**iOS/Android 当前仅支持配色**，聊天气泡、思考与工具卡片、消息间距、输入框和导航尚未换肤。已核对的官方 0.8.0 / 0.9.1 没有原生消息样式接口；直接替换消息会丢失附件和回退等原生行为，故本插件保留原生消息。升级 Paseo 不会自动获得手机气泡。参见[原生适配所缺接口](docs/native-mobile-support.md)和[已提交的上游需求 #4697](https://github.com/getpaseo/paseo/issues/4697)。
 
 ## 开发与停用
 
@@ -69,7 +69,7 @@ paseo plugin remove paseo-feishu-ui
 - [插件实现调研](docs/paseo-plugin-research.md)与[适配器约束](docs/desktop-adapter.md)
 - [本机验证记录及未覆盖项](docs/verification.md)
 
-`index.client.tsx` 注册主题、说明页和设置页；`client/settings.tsx` 使用 React Native 组件；`client/web.ts` 集中管理 Web DOM、样式和清理。TypeScript 不加载 DOM 库，原生入口在访问浏览器 API 前退出。`client/thinking.tsx` 提供受桌面主题开关控制的思考预览。桌面布局已经核对 0.8.0 的语义属性，升级后仍需重新验证。
+`index.client.tsx` 注册主题、说明页和设置页；`client/settings.tsx` 使用 React Native 组件；`client/web.ts` 集中管理 Web DOM、样式和清理。TypeScript 不加载 DOM 库，原生入口在访问浏览器 API 前退出。`client/thinking.tsx` 提供受桌面主题开关控制的思考预览。桌面布局依赖 Paseo 的语义属性，每次版本升级都需重新验证。
 
 `npm test` 检查 iOS/Android 在没有浏览器全局变量时能加载入口及两套主题；这不是原生实机渲染测试。浏览器回归脚本见 `tests/`。
 

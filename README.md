@@ -8,7 +8,7 @@ An independent community project. It is not affiliated with Feishu/Lark, ByteDan
 
 ## Install
 
-Requires **Paseo 0.8.x on both the app and daemon**. The plugin manifest accepts `>=0.8.0 <0.9.0`; older and newer major API revisions are not supported.
+Requires **Paseo 0.8.x or 0.9.x on both the app and daemon**, with 0.8.0 and 0.9.1 checked. The plugin manifest accepts `>=0.8.0 <0.10.0`; other API revisions are not yet supported.
 
 ```sh
 paseo plugin install Laokashouji/paseo-feishu-ui --ref main
@@ -40,7 +40,7 @@ Git pushes do not automatically update installed copies. For local source develo
 
 | Client | Support |
 | --- | --- |
-| macOS desktop, Paseo 0.8.0 | Layout, bubbles, thinking/tool cards; exercised in the installed app |
+| macOS desktop, Paseo 0.8.0 / 0.9.1 | Layout, bubbles, thinking/tool cards; exercised in the installed app |
 | Browser | DOM adapter and compact layouts; Chrome fixture tests at 1342px and 390px |
 | Official iOS / Android | **Theme colors only**; native bubbles, tools and thinking are unchanged |
 | Windows / Linux desktop | Not tested |

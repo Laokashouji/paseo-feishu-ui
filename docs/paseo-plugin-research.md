@@ -1,18 +1,20 @@
 # Paseo plugin implementation research
 
-Current integration target: Paseo 0.8.0, inspected 2026-09-11. The plugin has a client-only `index.client.tsx`, runtime modules under `client/`, SDK imports from `/client` and `/client/react-native`, and a `>=0.8.0 <0.9.0` manifest requirement. All browser code is isolated in `client/web.ts`; the project omits the DOM TypeScript library. The old `addClientSide` registration has been removed.
+Current integration targets: Paseo 0.8.0 and 0.9.1, inspected 2026-09-23. The local desktop app and daemon are 0.9.1; DevBox remains 0.8.0. The plugin keeps a client-only `index.client.tsx`, runtime modules under `client/`, and SDK imports from `/client` and `/client/react-native`. Its requirement is `>=0.8.0 <0.10.0`, with development types pinned to `@getpaseo/plugin@0.9.1`. Browser code stays isolated in `client/web.ts`; the project omits the DOM TypeScript library.
 
-The native appearance gap is documented in [native mobile support](native-mobile-support.md). Theme palettes are supported, but a complete native message skin cannot preserve current message behavior through the public 0.8.0 renderer contract.
+The 0.9.1 package's client contracts retain all used contributions, cleanup handles and timeline renderer props. Added host-targeted navigation and browser APIs are not used. The 0.9 release changes how `assistant_message` and `tool_call` transformers receive source items; this plugin transforms only `reasoning` and keeps native message/tool ownership. See the current [reference](https://paseo.sh/docs/plugins/reference.md) and [v0.9.0 release](https://github.com/getpaseo/paseo/releases/tag/v0.9.0).
 
-Paseo 0.8.0 task-list snapshots use `todo_` history row IDs and render TodoListCard through ExpandableBadge without a `tool-call-badge` test ID. The desktop adapter validates the direct row/frame/card path and the common native header structure before joining these snapshots into response frames. Unknown shapes remain native; user, permission, compaction and completed-turn boundaries are not included merely because they are adjacent to tools.
+The native appearance gap remains documented in [native mobile support](native-mobile-support.md). The 0.9.1 theme and renderer contracts still do not provide native message styling or delegation to the original message renderer. Native clients receive palettes; desktop DOM support does not establish iOS bubble support.
 
-The following 0.7.2 research is historical evidence for the original adapter; API names and navigation claims must be checked against the installed 0.8 SDK before new changes.
+Paseo task-list snapshots use `todo_` history row IDs and render TodoListCard without a `tool-call-badge` test ID. The desktop adapter validates the direct row/frame/card path and common native header structure before joining snapshots into response frames. Unknown shapes remain native; user, permission, compaction and completed-turn boundaries are not included merely because they are adjacent to tools.
+
+The following 0.7.2 research is historical evidence for the original adapter; API names and navigation claims must be checked against the installed SDK before new changes.
 
 ## Sources
 
 - [Documentation index](https://paseo.sh/llms.txt)
 - [Version selector](https://paseo.sh/docs/plugins.md)
-- [v0.8 migration](https://paseo.sh/docs/plugins/v0.8/migration.md) and [reference](https://paseo.sh/docs/plugins/v0.8/reference.md)
+- [Runtime-entry migration](https://paseo.sh/docs/plugins/migration.md) and [reference](https://paseo.sh/docs/plugins/reference.md)
 - The scaffold produced by `paseo plugin init`, pinned to `@getpaseo/plugin@0.7.2`.
 - The installed package's `dist/contracts.d.ts` and the installed desktop client bundle.
 
