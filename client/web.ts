@@ -76,6 +76,14 @@ type SkinMode = keyof typeof THEME_IDS;
 const REGISTRY = Symbol.for('paseo-feishu-ui.desktop.v1');
 /** Paseo 0.8 renders reasoning through the same native badge as tool calls. */
 const THINKING_LABEL = 'Thinking';
+/** Host and third-party sidebar labels that ship without zh-CN strings. CSS swaps only the painted text. */
+const RELABELS: ReadonlyArray<readonly [string, string]> = [
+  ['plugin-sidebar-agent-monitor-monitor', 'Agent 监控'],
+  ['plugin-sidebar-session-usage-session-usage', '会话用量'],
+  ['plugin-sidebar-herald-herald', '播报'],
+  ['plugin-sidebar-paseo-cafe-directory', '插件市场'],
+  ['sidebar-add-project', '添加项目'],
+];
 const TOOL_LABELS: Record<string, string> = {
   Thinking: '思考', Shell: '运行命令', Terminal: '终端', Read: '读取文件',
   Write: '写入文件', Edit: '编辑文件', Search: '搜索', Glob: '查找文件',
@@ -328,9 +336,6 @@ function createAdapter(): Shared {
       The 0.8 header is [icon, labelRow], with the original label and optional summary as own Text
       children. Fail closed if that structure changes; generated RNW classes are not selectors. */
   function markTools(scope: HTMLElement) {
-    for (const text of scope.querySelectorAll<HTMLElement>(selector('inline-thinking-text'))) {
-      if (text.textContent?.trim()) mark(text, 'thinking-text');
-    }
     const danger = getComputedStyle(document.documentElement).getPropertyValue('--colors-destructive').trim().toLowerCase();
     // TodoListCard uses the same ExpandableBadge without a testID in Paseo 0.8.
     // Validate its direct row/frame/card path, then apply the shared header guards below.
@@ -487,6 +492,12 @@ function createAdapter(): Shared {
         const section = header?.parentElement?.parentElement;
         if (section && section.parentElement === list?.firstElementChild) mark(section, 'group-section', id);
       }
+      for (const [id, text] of RELABELS) {
+        const label = q(id, root)?.querySelector<HTMLElement>('[dir="auto"]');
+        if (label && label.textContent?.trim() !== text) mark(label, 'relabel', text);
+      }
+      const listTitle = [...(list?.querySelectorAll<HTMLElement>('[dir="auto"]') ?? [])].find(e => e.textContent?.trim() === 'Workspaces');
+      if (listTitle) mark(listTitle, 'relabel', '项目');
       for (const row of root.querySelectorAll<HTMLElement>('[data-testid^="sidebar-workspace-row-"]')) {
         const icon = row.querySelector<HTMLElement>('[data-testid^="sidebar-row-project-icon-"]');
         if (icon?.nextElementSibling) mark(icon.nextElementSibling, 'row-copy');
@@ -749,7 +760,6 @@ html[data-pf-active] [data-pf-tool-details] {
  border:0!important; border-top:1px solid var(--pf-border)!important; border-radius:0!important;
  margin:0!important; padding:0!important; background:var(--pf-paper)!important;
 }
-html[data-pf-active] [data-pf-thinking-details] { padding:10px 12px!important; }
 html[data-pf-active] .pf-tool-copy {
  order:-1; align-self:flex-end; min-height:36px; min-width:70px; margin:2px 8px;
  padding:0 8px; border:0; border-radius:6px; background:transparent; color:var(--pf-secondary);
@@ -757,8 +767,14 @@ html[data-pf-active] .pf-tool-copy {
 }
 html[data-pf-active] .pf-tool-copy:hover { background:var(--pf-hover); color:var(--pf-text); }
 html[data-pf-active] .pf-tool-copy:focus-visible { outline:2px solid var(--pf-accent); outline-offset:-2px; }
+html[data-pf-active] [data-pf-thinking-details] { padding:10px 12px!important; }
 html[data-pf-active] [data-pf-thinking-details] [dir="auto"] { color:var(--pf-secondary)!important; font-size:13px!important; line-height:22px!important; }
-html[data-pf-active] [data-pf-thinking-text] { color:var(--pf-secondary)!important; font-size:13px!important; line-height:22px!important; }
+html[data-pf-active] [data-pf-relabel], html[data-pf-active] [data-pf-nav] button [data-pf-relabel][dir="auto"] { font-size:0!important; }
+html[data-pf-active] [data-pf-relabel]::before { content:attr(data-pf-relabel); font-size:14px; }
+html[data-pf-active] [data-pf-list] [data-pf-relabel]::before { font-size:12px; }
+/* The subagent track floats over the transcript tail; give it a fading backdrop and reserve room so the last card stays readable. */
+html[data-pf-active] div:has(> div > [data-testid="subagents-track-header"]) { background:linear-gradient(to bottom,transparent,var(--pf-canvas) 55%)!important; padding-top:10px!important; }
+html[data-pf-active] [data-testid="workspace-pane-main"]:has([data-testid="subagents-track-header"]) [data-testid="agent-chat-scroll"] > div:first-child { padding-bottom:64px!important; }
 @media(max-width:759px) {
  html[data-pf-active] [data-pf-tool-header] { min-height:52px!important; padding:9px 76px 9px 10px!important; }
  html[data-pf-active] [data-pf-tool-open-file] { min-width:44px; min-height:44px; }

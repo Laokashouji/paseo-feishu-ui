@@ -25,25 +25,24 @@ export function ThinkingCard({ item, theme, layout }: PluginTimelineItemProps<Th
     try { await copyText(item.data.text); setCopied('已复制'); }
     catch { setCopied('复制失败'); }
   };
-  return <View testID="feishu-thinking-card" style={{ minWidth: 0, borderWidth: 1,
-    borderColor: colors.border, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surface1 }}>
+  return <View testID="feishu-thinking-card" style={{ minWidth: 0, borderRadius: 6, overflow: 'hidden' }}>
     <Pressable testID="feishu-thinking-toggle" accessibilityRole="button"
       accessibilityLabel={preview || (running ? '正在思考' : '暂无思考内容')}
       aria-expanded={expanded} onPress={() => setExpanded(value => !value)}
-      style={{ minHeight: layout.compact ? 52 : 46, paddingHorizontal: 12, paddingVertical: 9,
+      style={{ minHeight: layout.compact ? 44 : 30, paddingHorizontal: 8, paddingVertical: 4,
         flexDirection: 'row', alignItems: 'center', gap: 9 }}>
       <View testID="feishu-thinking-icon" style={{ width: 18, height: 20, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name="Brain" size={16} color={colors.foregroundMuted} />
+        <Icon name="Brain" size={14} color={colors.foregroundMuted} />
       </View>
       <Text testID="feishu-thinking-preview" numberOfLines={1}
-        style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 20, color: colors.foregroundMuted }}>
+        style={{ flex: 1, minWidth: 0, fontSize: 12, lineHeight: 18, color: colors.foregroundMuted, opacity: 0.85 }}>
         {preview || (running ? '正在思考…' : '暂无思考内容')}
       </Text>
       {running && <Text style={{ color: colors.accent, fontSize: 11, lineHeight: 18 }}>思考中</Text>}
       <Icon name={expanded ? 'ChevronUp' : 'ChevronDown'} size={14} color={colors.foregroundMuted} />
     </Pressable>
-    {expanded && <View testID="feishu-thinking-details" style={{ borderTopWidth: 1, borderColor: colors.border,
-      backgroundColor: colors.surface0, paddingHorizontal: 12, paddingBottom: 12 }}>
+    {expanded && <View testID="feishu-thinking-details" style={{ borderLeftWidth: 2, borderColor: colors.border,
+      marginLeft: 16, paddingLeft: 12, paddingRight: 8, paddingBottom: 8 }}>
       <Pressable accessibilityRole="button" accessibilityLabel="复制完整思考内容" onPress={copy}
         disabled={!item.data.text.trim()} style={{ alignSelf: 'flex-end', minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 }}>
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{copied || '复制详情'}</Text>
