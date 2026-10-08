@@ -1,6 +1,8 @@
 # Paseo plugin implementation research
 
-Current integration targets: Paseo 0.8.0 and 0.9.1, inspected 2026-09-23. The local desktop app and daemon are 0.9.1; DevBox remains 0.8.0. The plugin keeps a client-only `index.client.tsx`, runtime modules under `client/`, and SDK imports from `/client` and `/client/react-native`. Its requirement is `>=0.8.0 <0.10.0`, with development types pinned to `@getpaseo/plugin@0.9.1`. Browser code stays isolated in `client/web.ts`; the project omits the DOM TypeScript library.
+Current compatibility range: Paseo 0.8.x–0.11.x, checked against 0.11.1 on 2026-10-08. The plugin keeps a client-only `index.client.tsx`, runtime modules under `client/`, and SDK imports from `/client` and `/client/react-native`. Its requirement is `>=0.8.0 <0.12.0`, with development types pinned to `@getpaseo/plugin@0.9.1`. Browser code stays isolated in `client/web.ts`; the project omits the DOM TypeScript library.
+
+The 0.11.1 SDK retains the used theme, timeline and settings contracts. `addSurface` remains a deprecated compatibility alias; this plugin keeps it to preserve older hosts. Validation covered the installed 0.11.1 web client at desktop and compact widths, both themes, and thinking expansion. This does not establish native mobile visual parity.
 
 The 0.9.1 package's client contracts retain all used contributions, cleanup handles and timeline renderer props. Added host-targeted navigation and browser APIs are not used. The 0.9 release changes how `assistant_message` and `tool_call` transformers receive source items; this plugin transforms only `reasoning` and keeps native message/tool ownership. See the current [reference](https://paseo.sh/docs/plugins/reference.md) and [v0.9.0 release](https://github.com/getpaseo/paseo/releases/tag/v0.9.0).
 

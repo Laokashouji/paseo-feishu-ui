@@ -8,10 +8,10 @@ An independent community project. It is not affiliated with Feishu/Lark, ByteDan
 
 ## Install
 
-Requires **Paseo 0.8.x or 0.9.x on both the app and daemon**, with 0.8.0 and 0.9.1 checked. The plugin manifest accepts `>=0.8.0 <0.10.0`; other API revisions are not yet supported.
+Requires **Paseo 0.8.x–0.11.x on both the app and daemon**. The plugin manifest accepts `>=0.8.0 <0.12.0`.
 
 ```sh
-paseo plugin install Laokashouji/paseo-feishu-ui --ref main
+paseo plugin install github:Laokashouji/paseo-feishu-ui --ref main
 ```
 
 Select **飞书 · 浅色** (light) or **飞书 · 暗黑** (dark) in Settings → Appearance. Install on every daemon whose conversations should receive thinking previews; timeline contributions belong to the conversation's host.
