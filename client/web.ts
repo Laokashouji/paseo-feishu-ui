@@ -518,8 +518,12 @@ function createAdapter(): Shared {
       const input = explicit.find(visible) ?? (!visible(composer) ? explicit[0] : undefined) ??
         [...composer.querySelectorAll<HTMLElement>('textarea,[contenteditable="true"]')].find(visible);
       const attach = q('message-input-attach-button', composer);
-      const box = childContaining(composer, input ?? null);
-      if (box && attach && box.contains(attach)) mark(box, 'composer-box');
+      // 0.12 adds a presentation shell; the editor and toolbar still share the actual input panel.
+      let box = input?.parentElement ?? null;
+      while (box && box !== composer && attach && !box.contains(attach)) box = box.parentElement;
+      if (attach && box !== composer && flowColumn(box) && !box.closest(selector('composer-fullscreen'))) {
+        mark(box, 'composer-box');
+      }
       const inner = composer.parentElement;
       if (inner?.children.length === 1 && flowColumn(inner)) {
         mark(inner, 'composer-inner');

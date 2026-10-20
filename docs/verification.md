@@ -1,3 +1,9 @@
+# Composer presentation regression — 0.3.12, 2026-10-20
+
+- Paseo 0.12 nests the input panel under presentation/body containers. The old adapter marked the presentation shell, producing two borders and an extra 12px padding layer. The nearest shared editor/attachment ancestor now receives the skin; root-only matches and fullscreen presentation remain native.
+- In the official 0.12 web client connected to a real Mac conversation, borders changed from two to one and the empty composer height from 142px to 116px. At 1342px and 390px, focus highlights only the panel, blur restores its gray border, and the page has no horizontal overflow. Screenshots were checked. The adapter preserved the mounted editor and draft; the host remounts its editor across responsive layouts, with the draft value retained. No message was sent.
+- The new browser regression fails on 0.3.11 and passes after the fix, covering old/new structures, hidden measurement input, fullscreen/root/read-only exclusions, both themes, focus/blur, draft and attachment-handler preservation, compact layout and cleanup. Existing browser/native-entry tests, typechecking and the official 0.12 compiler pass. macOS Electron and native mobile hardware were not exercised.
+
 # Sidebar icon regression — 0.3.11, 2026-10-20
 
 - Paseo 0.12 adds a transparent wrapper around `ProjectIconView`. The old selector enlarged the wrapper but left the actual avatar at 16px inside a 36px slot.

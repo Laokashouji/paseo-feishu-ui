@@ -47,7 +47,7 @@ The installed RNW prop filter drops composite `accessibilityState`. A VM executi
 
 Preserve native workspace selection and hover backgrounds (`surfaceSidebarSelected` and `surfaceSidebarHover`). A blanket row background override would erase selection even if the rows otherwise look correct.
 
-`message-input-root` is also a keyboard focus-scope boundary. Its first child can be an autofocus helper, not the visible editor wrapper. Preserve editor identity, draft state, selection, IME composition, handlers, attachments, disabled/read-only states, and send/stop/queue behavior. Locate the visible wrapper by its editor and toolbar containment after runtime inspection.
+`message-input-root` is also a keyboard focus-scope boundary. Its first child can be an autofocus helper, not the visible editor wrapper. Preserve editor identity, draft state, selection, IME composition, handlers, attachments, disabled/read-only states, and send/stop/queue behavior. Locate the visible wrapper by its editor and toolbar containment after runtime inspection. Paseo 0.12 adds presentation/body containers above that wrapper: style the nearest shared flex-column ancestor of the visible editor and attachment button, excluding the root and fullscreen presentation. This keeps the border and focus ring on the input panel without adding an outer box. `tests/composer.browser.cjs` checks old/new structures, focus, draft preservation, compact layout and teardown.
 
 Transcript rows can use absolute positioning, `translateY`, and virtual spacers. Preserve those measurements and scroll behavior when styling bubbles and text. Keep permission controls, question forms, menus, and portaled overlays visible and operable; navigation code must not synthesize permission-button clicks.
 
