@@ -1,5 +1,7 @@
 # Desktop adapter contract: Paseo 0.8.0
 
+Paseo 0.12 sidebar icons: `ProjectIconView` is wrapped by a single-child `display: contents` host. Resolve that wrapper before marking the actual avatar and its box; leave the sibling status badge untouched. Desktop avatars remain 36px circles, while compact layouts retain native dimensions. `tests/sidebar-icons.browser.cjs` covers the old direct-child structure, the new wrapper, image avatars, both themes and cleanup.
+
 Updated 2026-09-11: the desktop shell inserts a single-child `display: contents` wrapper above the sidebar width controller. `sidebarFrame` skips only these wrappers (at most three), then requires a real flex row with exactly two children. The validated sibling receives the chat frame style. This restores the 6px inset and 8px corners; blindly using the immediate parent loses the separation on 0.8. Source lives in `client/web.ts`.
 
 Source inspection and initial native integration verification completed on 2026-09-07. This document records version-specific constraints; see [verification](verification.md) for observed behavior and remaining coverage limits.

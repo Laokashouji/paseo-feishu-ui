@@ -490,6 +490,17 @@ function createAdapter(): Shared {
       for (const row of root.querySelectorAll<HTMLElement>('[data-testid^="sidebar-workspace-row-"]')) {
         const icon = row.querySelector<HTMLElement>('[data-testid^="sidebar-row-project-icon-"]');
         if (icon?.nextElementSibling) mark(icon.nextElementSibling, 'row-copy');
+        const box = icon?.firstElementChild;
+        let avatar = box?.firstElementChild;
+        // 0.12 wraps ProjectIconView in a layout-transparent withUnistyles host.
+        for (let depth = 0; avatar && depth < 3 && getComputedStyle(avatar).display === 'contents'; depth++) {
+          if (avatar.children.length !== 1) { avatar = null; break; }
+          avatar = avatar.firstElementChild;
+        }
+        if (box?.tagName === 'DIV' && avatar?.tagName === 'DIV' &&
+            getComputedStyle(avatar).display !== 'contents' && avatar.getAttribute('role') !== 'status') {
+          mark(box, 'row-icon-box'); mark(avatar, 'row-avatar');
+        }
       }
     }
     // Cached/split workspace panes are scoped individually; never mutate the editor or virtual rows.
@@ -602,7 +613,7 @@ html[data-pf-active] .pf-groups, html[data-pf-active] .pf-list-heading { display
  html[data-pf-active] [data-testid="sidebar-status-list-scroll"] > div, html[data-pf-active] [data-testid="sidebar-project-workspace-list-scroll"] > div { padding-left:0!important; padding-right:0!important; }
  html[data-pf-active] [data-testid^="sidebar-workspace-row-"] { min-height:60px!important; width:calc(100% - 16px)!important; margin-left:8px!important; margin-right:8px!important; padding:10px 8px!important; border-radius:7px!important; justify-content:center!important; }
  html[data-pf-active] [data-testid^="sidebar-row-project-icon-"] { width:36px!important; height:36px!important; flex:0 0 36px!important; margin-right:4px!important; }
- html[data-pf-active] [data-testid^="sidebar-row-project-icon-"] > div, html[data-pf-active] [data-testid^="sidebar-row-project-icon-"] > div > div:first-child { width:36px!important; height:36px!important; border-radius:50%!important; }
+ html[data-pf-active] [data-pf-row-icon-box], html[data-pf-active] [data-pf-row-avatar] { width:36px!important; height:36px!important; border-radius:50%!important; }
  html[data-pf-active] [data-testid^="sidebar-row-project-icon-"] [dir="auto"] { font-size:15px!important; }
  html[data-pf-active] [data-pf-row-copy] { min-width:0!important; }
  html[data-pf-active] [data-pf-row-copy] > div:first-child > [dir="auto"] { font-size:14px!important; font-weight:500!important; }

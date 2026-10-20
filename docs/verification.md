@@ -1,3 +1,9 @@
+# Sidebar icon regression — 0.3.11, 2026-10-20
+
+- Paseo 0.12 adds a transparent wrapper around `ProjectIconView`. The old selector enlarged the wrapper but left the actual avatar at 16px inside a 36px slot.
+- On the official 0.12 web client connected to the Mac host, all 12 mounted avatars changed from 16×16 to 36×36 at 1342px and 820px widths. Native status badges retained their 12px/14px sizes. At 390px, the opened native sidebar kept its 20px avatars and the page had no horizontal overflow. Desktop screenshots were checked. This is browser verification of the real workspace list, not a macOS Electron capture.
+- The new browser regression fails on 0.3.10 with 16px instead of 36px, and passes after the fix. It covers direct/wrapped initial and image avatars, both themes, 1342px/820px/390px layouts, status sizes and teardown. Existing tool-card and native-entry tests, typechecking and the official 0.12 compiler also pass. Native iOS/Android hardware was not tested.
+
 # Paseo 0.9.1 compatibility — 0.3.8, 2026-09-23
 
 - Before the change, the local 0.9.1 daemon rejected the plugin because its requirement ended at `<0.9.0`; the desktop had no skin styles despite retaining the selected Feishu theme ID. DevBox remained on 0.8.0.
