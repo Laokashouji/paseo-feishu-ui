@@ -8,7 +8,7 @@ An independent community project. It is not affiliated with Feishu/Lark, ByteDan
 
 ## Install
 
-Requires **Paseo 0.8.x–0.11.x on both the app and daemon**. The plugin manifest accepts `>=0.8.0 <0.12.0`.
+Requires **Paseo 0.8.x–0.12.x on both the app and daemon**. The plugin manifest accepts `>=0.8.0 <0.13.0`.
 
 ```sh
 paseo plugin install github:Laokashouji/paseo-feishu-ui --ref main
