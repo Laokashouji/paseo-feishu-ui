@@ -162,8 +162,8 @@ The read-only `tests/sidebar-callout.browser.js` failed before the fix (wrong co
 The layout responds to wrapped alert text without a fixed height or a measuring timer. Its35vh cap retains scroll access for taller notices. Update/Rosetta notices share the audited native slot but were not separately triggered.
 
 After this revision, disable cleared every owned node, marker and adapter registry; re-enable reported running. Removed the temporary diagnostic plugin, verified its renderer target list was empty, and stopped the bridge. The native window was restored to1920×1050. Only the production plugin remains installed locally.
-# Paseo 0.13.2 compatibility — 2026-10-27
+# Paseo 0.14.0 compatibility — 2026-11-02
 
-- Version 0.3.13 permits Paseo 0.13 without changing the visual adapter. Original development types, 0.13.2 SDK types and the official compiler pass; both native entry tests and all three browser suites pass.
-- The official 0.13.2 web client loads the plugin and selects its dark theme. The native new-workspace composer at 1342px and 390px has one border, 116px height, no horizontal overflow, a blue focus ring and a gray border after blur. Screenshots were inspected; no prompt was sent or workspace created.
-- Sidebar icon sizes are covered by browser fixtures. Native macOS Electron and iOS/Android hardware were not exercised in this check.
+- Version 0.3.14 permits Paseo 0.14 without changing the visual adapter. Original development types, 0.14.0 SDK types and the official compiler pass; both native entry tests and all three browser suites pass.
+- The official 0.14.0 web client loads the plugin and selects its dark theme. The native new-workspace composer at 1342px and 390px has one border, 116px height, no horizontal overflow, a blue focus ring and a gray border after blur. Screenshots were inspected; no prompt was sent or workspace created.
+- Sidebar icon sizes are covered by browser fixtures. The 0.14 `turn-summary` badge is excluded from tool decoration by its testID; completed-turn interaction in a real conversation, native macOS Electron and iOS/Android hardware were not exercised in this check.
