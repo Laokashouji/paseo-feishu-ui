@@ -16,7 +16,7 @@ Claude Code 的 Explore 卡片采用“搜索图标＋任务描述”单行展�
 
 ## 安装
 
-适配 Paseo **0.8.x–0.14.x**。App 和 daemon 均需处于支持范围；暂不声明支持 0.7 或 0.15 及以上版本。使用 Node.js 20.19.4 或更高版本。
+需要 Paseo App 和 daemon **0.8.0 或更高版本**。新版本默认允许加载；只有确认不兼容时才增加版本限制。桌面样式依赖宿主结构，允许加载不代表所有未来版本都已通过视觉验收。使用 Node.js 20.19.4 或更高版本。
 
 ```sh
 paseo plugin install github:Laokashouji/paseo-feishu-ui --ref main

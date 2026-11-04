@@ -164,6 +164,8 @@ The layout responds to wrapped alert text without a fixed height or a measuring 
 After this revision, disable cleared every owned node, marker and adapter registry; re-enable reported running. Removed the temporary diagnostic plugin, verified its renderer target list was empty, and stopped the bridge. The native window was restored to1920×1050. Only the production plugin remains installed locally.
 # Paseo 0.14.0 compatibility — 2026-11-02
 
+The later 0.3.15 manifest removes the upper bound. On 2026-11-04, original and official 0.15.0 SDK typechecks, official compilation, both native entry tests and isolated daemon loading passed. Only version policy and documentation changed; 0.15.0 visual behavior was not interactively rechecked.
+
 - Version 0.3.14 permits Paseo 0.14 without changing the visual adapter. Original development types, 0.14.0 SDK types and the official compiler pass; both native entry tests and all three browser suites pass.
 - The official 0.14.0 web client loads the plugin and selects its dark theme. The native new-workspace composer at 1342px and 390px has one border, 116px height, no horizontal overflow, a blue focus ring and a gray border after blur. Screenshots were inspected; no prompt was sent or workspace created.
 - Sidebar icon sizes are covered by browser fixtures. The 0.14 `turn-summary` badge is excluded from tool decoration by its testID; completed-turn interaction in a real conversation, native macOS Electron and iOS/Android hardware were not exercised in this check.
