@@ -22,7 +22,7 @@ interface Element extends ParentNode {
   setAttribute(name: string, value: string): void;
   removeAttribute(name: string): void;
   hasAttribute(name: string): boolean;
-  getBoundingClientRect(): { width: number; height: number };
+  getBoundingClientRect(): { width: number; height: number; top: number; bottom: number };
   contains(element: Element): boolean;
   matches(selector: string): boolean;
   closest(selector: string): Element | null;
@@ -59,7 +59,7 @@ declare const localStorage: { getItem(key: string): string | null };
 declare const CSS: { escape(value: string): string };
 declare function getComputedStyle(element: Element): {
   flexDirection: string; display: string; position: string; transform: string;
-  animationName: string;
+  animationName: string; borderLeftWidth: string; borderTopWidth: string;
   getPropertyValue(name: string): string;
 };
 declare class MutationObserver {
@@ -171,7 +171,11 @@ function createAdapter(): Shared {
     } catch { return null; }
   }
   function q(id: string, scope: ParentNode = document) { return scope.querySelector<HTMLElement>(selector(id)); }
-  function nativeAction(id: string) { q(id, sidebar ?? document)?.click(); }
+  function firstMatch(ids: readonly string[], scope: ParentNode = document) {
+    for (const id of ids) { const found = q(id, scope); if (found) return found; }
+    return null;
+  }
+  function nativeAction(...ids: string[]) { firstMatch(ids, sidebar ?? document)?.click(); }
   function button(label: string, icon: string, action: () => void) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'pf-button';
@@ -194,25 +198,28 @@ function createAdapter(): Shared {
       b.dataset.pfGroup = id; rail.append(b);
     }
     const label = document.createElement('div'); label.className = 'pf-group-label'; label.textContent = '工作台'; rail.append(label);
-    rail.append(button('搜索工作区', 'search', () => nativeAction('sidebar-command-center-search')));
+    rail.append(button('搜索工作区', 'search', () => nativeAction('sidebar-search', 'sidebar-command-center-search')));
     rail.append(button('显示偏好', 'sliders', () => nativeAction('sidebar-display-preferences-menu')));
-    rail.append(button('添加项目', 'folder', () => nativeAction('sidebar-add-project')));
+    rail.append(button('添加项目', 'folder', () => nativeAction('sidebar-add-project', 'sidebar-footer-overflow')));
     const foot = document.createElement('div'); foot.className = 'pf-rail-foot'; foot.textContent = 'Paseo'; rail.append(foot);
     root.append(rail);
     listHead = document.createElement('div'); listHead.dataset.pfOwned = 'list-heading'; listHead.className = 'pf-list-heading';
     const line = document.createElement('div'); line.className = 'pf-list-title'; line.textContent = '工作区';
     const preferences = button('显示偏好', 'sliders', () => nativeAction('sidebar-display-preferences-menu'));
     preferences.className = 'pf-icon-button'; preferences.title = '显示偏好'; line.append(preferences);
-    const search = button('搜索（⌘ K）', 'search', () => nativeAction('sidebar-command-center-search'));
+    const search = button('搜索（⌘ K）', 'search', () => nativeAction('sidebar-search', 'sidebar-command-center-search'));
     search.className = 'pf-search'; listHead.append(line, search); root.append(listHead);
   }
+  const navIds = ['sidebar-global-new-workspace', 'sidebar-sessions', 'sidebar-search', 'sidebar-schedules'] as const;
+  const sidebarAnchors = [...navIds, 'sidebar-footer', 'sidebar-settings'].map(selector).join(',');
   function findSidebar(): HTMLElement | null {
-    const start = [...document.querySelectorAll<HTMLElement>(selector('sidebar-global-new-workspace'))].find(visible);
+    const start = [...document.querySelectorAll<HTMLElement>(sidebarAnchors)].find(visible);
     for (let e = start?.parentElement; e && e !== document.body; e = e.parentElement) {
-      if (q('sidebar-settings', e) && q('left-sidebar-resize-handle', e) &&
+      if ((q('sidebar-footer', e) || q('sidebar-settings', e)) &&
           (q('sidebar-status-list-scroll', e) || q('sidebar-project-workspace-list-scroll', e))) {
-        // Stop before an app-wide common ancestor: sidebar must have one width controller and a center sibling.
-        if (sidebarFrame(e)) return e;
+        // Stop before an app-wide common ancestor: sidebar must have one docked width controller and a center sibling.
+        const frame = sidebarFrame(e);
+        if (frame && (q('left-sidebar-resize-handle', e) || frame.divisionGap)) return e;
         return null;
       }
     }
@@ -222,17 +229,38 @@ function createAdapter(): Shared {
     const width = root.parentElement;
     if (!width || width.children.length !== 1) return null;
     let branch = width;
-    // 0.8 adds a single-child display:contents host around the sidebar width controller.
-    for (let depth = 0; depth < 3 && branch.parentElement; depth++) {
+    // 0.8 adds display:contents hosts; 0.16 wraps the docked desktop sidebar in MobilePanelOverlay
+    // flex-column containers with one hidden backdrop sibling. Reject absolute/fixed overlay drawers.
+    for (let depth = 0; depth < 6 && branch.parentElement && branch.parentElement !== document.body; depth++) {
       const parent = branch.parentElement;
-      if (getComputedStyle(parent).display !== 'contents') break;
-      if (parent.children.length !== 1) return null;
+      const css = getComputedStyle(parent);
+      if (css.display === 'flex' && css.flexDirection === 'row') break;
+      if (css.position === 'absolute' || css.position === 'fixed') return null;
+      if (css.display === 'contents') {
+        if (parent.children.length !== 1) return null;
+      } else if (css.display === 'flex' && css.flexDirection === 'column') {
+        const active = [...parent.children].filter(child => getComputedStyle(child).display !== 'none');
+        if (active.length !== 1 || active[0] !== branch) return null;
+      } else {
+        return null;
+      }
       branch = parent;
     }
     const row = branch.parentElement;
-    if (!row || getComputedStyle(row).display !== 'flex' ||
-        getComputedStyle(row).flexDirection !== 'row' || row.children.length !== 2) return null;
-    return { row, branch };
+    if (!row || getComputedStyle(row).display !== 'flex' || getComputedStyle(row).flexDirection !== 'row') return null;
+    const others = [...row.children].filter((el): el is HTMLElement =>
+      el !== branch && el instanceof HTMLElement && getComputedStyle(el).display !== 'none');
+    let divisionGap: HTMLElement | null = null;
+    let center: HTMLElement | null = null;
+    if (others.length === 1) {
+      center = others[0];
+    } else if (others.length === 2 && others[0].children.length === 0) {
+      [divisionGap, center] = others;
+    }
+    if (!center) return null;
+    const centerCss = getComputedStyle(center);
+    if (centerCss.position === 'absolute' || centerCss.position === 'fixed') return null;
+    return { row, branch, center, divisionGap };
   }
   function childContaining(root: HTMLElement, target: HTMLElement | null) {
     return target ? [...root.children].find(c => c.contains(target)) as HTMLElement | undefined : undefined;
@@ -244,15 +272,36 @@ function createAdapter(): Shared {
     return css.display === 'flex' && css.flexDirection === 'column' &&
       css.position !== 'absolute' && css.position !== 'fixed' && css.transform === 'none';
   }
+  function isIndentRail(el: Element | null): el is HTMLElement {
+    if (!flowColumn(el) || el.hasAttribute('data-testid')) return false;
+    const css = getComputedStyle(el);
+    return css.borderLeftWidth !== '0px' && css.borderTopWidth === '0px';
+  }
+  function directInFrame(frame: Element | null, target: Element | null): boolean {
+    let p = target?.parentElement ?? null;
+    for (let depth = 0; p && depth < 3 && getComputedStyle(p).display === 'contents'; depth++) {
+      if (p.children.length !== 1) return false;
+      p = p.parentElement;
+    }
+    return !!frame && p === frame;
+  }
+  function rowsAdjacent(row: HTMLElement, next: HTMLElement | undefined): boolean {
+    if (!next) return false;
+    const rIdx = row.hasAttribute('data-index'), nIdx = next.hasAttribute('data-index');
+    if (rIdx && nIdx) return Number(next.dataset.index) === Number(row.dataset.index) + 1;
+    if (!rIdx && !nIdx) return true;
+    return Math.abs(next.getBoundingClientRect().top - row.getBoundingClientRect().bottom) <= 4;
+  }
+  function isButtonLike(el: Element | null): boolean {
+    return el instanceof HTMLElement && (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button');
+  }
   function markCenter(root: HTMLElement) {
     const frame = sidebarFrame(root);
     if (!frame) return;
-    const { row, branch } = frame;
-    const siblings = [...row.children].filter(el => el !== branch);
-    if (siblings.length !== 1 || !(siblings[0] instanceof HTMLElement)) return;
-    const center = siblings[0];
-    if (!q('workspace-pane-main', center) && !q('plugin-surface-close', center)) return;
+    const { row, center, divisionGap } = frame;
+    if (!center.children.length && !center.hasAttribute('data-testid')) return;
     mark(row, 'shell'); mark(center, 'center');
+    if (divisionGap) mark(divisionGap, 'division-gap');
   }
   function markTranscript(transcript: HTMLElement) {
     const content = transcript.firstElementChild;
@@ -265,19 +314,18 @@ function createAdapter(): Shared {
       // Completed native rows may append a separate footer sibling. Style only content frame 0.
       if (!flowColumn(inner) || inner.hasAttribute('data-history-row-id')) continue;
       mark(inner, 'message-frame');
+      if (q('turn-summary', inner) || [...inner.children].some(isIndentRail)) mark(inner, 'turn-frame');
       const assistant = q('assistant-message', inner);
-      if (!assistant || assistant.parentElement !== inner) continue;
+      if (!assistant || !directInFrame(inner, assistant)) continue;
       // Markdown blocks are native timeline rows, not separate messages. Preserve the entire
       // opaque prefix, including :segment: suffixes produced by interleaved tools/streaming.
       const part = /^(.*):block:(\d+)$/.exec(row.dataset.historyRowId ?? '');
       const next = rows[index + 1];
       const nextPart = /^(.*):block:(\d+)$/.exec(next?.dataset.historyRowId ?? '');
-      const adjacentVirtual = !row.hasAttribute('data-index') || !next?.hasAttribute('data-index') ||
-        Number(next.dataset.index) === Number(row.dataset.index) + 1;
+      const nextFrame = next?.firstElementChild ?? null;
       const joinsNext = !!part && !!nextPart && part[1] === nextPart[1] &&
-        Number(nextPart[2]) === Number(part[2]) + 1 && adjacentVirtual &&
-        flowColumn(next.firstElementChild) &&
-        q('assistant-message', next)?.parentElement === next.firstElementChild;
+        Number(nextPart[2]) === Number(part[2]) + 1 && rowsAdjacent(row, next) &&
+        flowColumn(nextFrame) && directInFrame(nextFrame, q('assistant-message', next));
       // block 0 is the only author boundary, even when earlier virtual blocks are unmounted.
       const starts = !part || Number(part[2]) === 0;
       mark(assistant, 'message-part', starts ? (joinsNext ? 'start' : 'single') : (joinsNext ? 'middle' : 'end'));
@@ -295,7 +343,7 @@ function createAdapter(): Shared {
     markResponseFrames(rows);
   }
   /** Consecutive supported native rows share visual edges. Never move rows or bridge a
-      virtual gap, user/permission/system row, or the host's completed-turn footer. */
+      virtual gap, user/permission/system row, collapsed-turn indent rail, or completed-turn footer. */
   function markResponseFrames(rows: HTMLElement[]) {
     const eligible = rows.map(row => {
       const frame = row.firstElementChild;
@@ -303,15 +351,14 @@ function createAdapter(): Shared {
       // Use this pass's tool recognition: a recycled row may still carry an old marker
       // until retireMarks runs at the end of reconciliation.
       const body = frame.querySelector('[data-testid="assistant-message"],[data-testid="feishu-thinking-card"]') ??
-        [...frame.querySelectorAll('[data-pf-tool]')].find(tool => desired.get(tool)?.has('data-pf-tool'));
-      if (!body || body.closest('[data-history-row-id]') !== row ||
+        [...frame.querySelectorAll('[data-pf-tool]')].find(tool => desired.get(tool)?.has('data-pf-tool')) ?? null;
+      if (!body || body.closest('[data-history-row-id]') !== row || !directInFrame(frame, body) ||
           frame.querySelector('[data-testid="user-message"],[data-testid^="permission-"],[data-testid="question-form-card"]')) return null;
       return frame;
     });
     const joined = (index: number) => {
       const row = rows[index], next = rows[index + 1];
-      return !!eligible[index] && !!eligible[index + 1] && row.children.length === 1 &&
-        (!row.hasAttribute('data-index') || !next.hasAttribute('data-index') || Number(next.dataset.index) === Number(row.dataset.index) + 1);
+      return !!eligible[index] && !!eligible[index + 1] && row.children.length === 1 && rowsAdjacent(row, next);
     };
     for (const [index, frame] of eligible.entries()) {
       if (!frame) continue;
@@ -325,22 +372,22 @@ function createAdapter(): Shared {
     }
   }
   /** Decorate native badges, never replace timeline items or their detail/file/permission handlers.
-      The 0.8 header is [icon, labelRow], with the original label and optional summary as own Text
-      children. Fail closed if that structure changes; generated RNW classes are not selectors. */
+      Supports both 0.8 [button > row > [icon, labelRow]] and 0.16 [headerRow > [disclosureButton > [icon, labelRow], openFile?]].
+      Fail closed if that structure changes; generated RNW classes are not selectors. */
   function markTools(scope: HTMLElement) {
     for (const text of scope.querySelectorAll<HTMLElement>(selector('inline-thinking-text'))) {
       if (text.textContent?.trim()) mark(text, 'thinking-text');
     }
     const danger = getComputedStyle(document.documentElement).getPropertyValue('--colors-destructive').trim().toLowerCase();
-    // TodoListCard uses the same ExpandableBadge without a testID in Paseo 0.8.
-    // Validate its direct row/frame/card path, then apply the shared header guards below.
-    // Do not infer a task from translated labels or treat arbitrary timeline rows as tools.
+    // TodoListCard uses the same ExpandableBadge without a testID in Paseo 0.8–0.16.
+    // Validate its direct row/frame/(optional IndentRail)/card path, then apply the shared header guards below.
     const todoBadges = new Set<HTMLElement>();
     for (const source of scope.querySelectorAll<HTMLElement>('[data-history-row-id^="todo_"]')) {
       const frame = source.firstElementChild;
-      const badge = frame?.firstElementChild ?? null;
-      if (flowColumn(frame) && frame.children.length === 1 && flowColumn(badge) &&
-          badge.closest('[data-history-row-id]') === source && !badge.hasAttribute('data-testid')) {
+      if (!flowColumn(frame) || frame.children.length !== 1) continue;
+      let badge = frame.firstElementChild;
+      if (isIndentRail(badge) && badge.children.length === 1) badge = badge.firstElementChild;
+      if (flowColumn(badge) && badge.closest('[data-history-row-id]') === source && !badge.hasAttribute('data-testid')) {
         todoBadges.add(badge);
       }
     }
@@ -348,20 +395,39 @@ function createAdapter(): Shared {
     for (const badge of badges) {
       // Detail sheets may contain their own native badges. Only process the current transcript.
       if (badge.closest(selector('agent-chat-scroll')) !== scope.closest(selector('agent-chat-scroll'))) continue;
-      const header = badge.firstElementChild;
-      if (!(header instanceof HTMLElement) || header.children.length !== 1) continue;
-      const row = header.firstElementChild;
-      if (row?.children.length !== 2) continue;
+      const bar = badge.firstElementChild;
+      if (!(bar instanceof HTMLElement)) continue;
+      let shell: HTMLElement | null = null;
+      let header: HTMLElement | null = null;
+      let row: HTMLElement | null = null;
+      let siblingOpenFile: HTMLElement | null = null;
+      const firstInner = bar.firstElementChild;
+      if (!isButtonLike(bar) && firstInner instanceof HTMLElement &&
+          (isButtonLike(firstInner) || firstInner.getAttribute('aria-disabled') === 'true') &&
+          firstInner.children.length === 2 &&
+          (bar.children.length === 1 || (bar.children.length === 2 && bar.children[1].matches(selector('tool-call-open-file'))))) {
+        shell = bar;
+        header = firstInner;
+        row = firstInner;
+        siblingOpenFile = bar.children[1] ?? null;
+      } else if (bar.children.length === 1 && firstInner instanceof HTMLElement &&
+                 !isButtonLike(firstInner) && firstInner.children.length === 2) {
+        header = bar;
+        row = firstInner;
+      }
+      if (!header || !row) continue;
       const [icon, labels] = row.children;
       const label = labels.firstElementChild;
       if (!label?.matches('[dir="auto"]')) continue;
       const name = label.textContent?.trim() ?? '';
       if (!name) continue;
-      const interactive = header.tagName === 'BUTTON' || header.getAttribute('role') === 'button';
+      const interactive = isButtonLike(header) && !header.disabled && header.getAttribute('aria-disabled') !== 'true';
       const summary = label.nextElementSibling;
       const kind = todoBadges.has(badge) ? 'todo' : name === THINKING_LABEL ? 'thinking' : badge.matches(selector('tool-call-group')) ? 'group' : 'tool';
       mark(badge, 'tool', kind);
-      mark(header, 'tool-header', interactive && !header.disabled ? 'interactive' : 'static');
+      mark(bar, 'tool-bar');
+      if (shell) mark(shell, 'tool-shell');
+      mark(header, 'tool-header', interactive ? 'interactive' : 'static');
       mark(row, 'tool-row'); mark(icon, 'tool-icon'); mark(labels, 'tool-labels');
       mark(label, 'tool-label');
       const explore = kind === 'tool' && name === 'Explore';
@@ -435,7 +501,7 @@ function createAdapter(): Shared {
           }
         }
       }
-      const openFile = q('tool-call-open-file', labels);
+      const openFile = siblingOpenFile ?? q('tool-call-open-file', labels);
       if (openFile) mark(openFile, 'tool-open-file');
     }
   }
@@ -459,17 +525,17 @@ function createAdapter(): Shared {
       sidebar = root;
       mark(root, 'sidebar'); mark(root.parentElement, 'width');
       markCenter(root);
-      mark(childContaining(root, q('sidebar-global-new-workspace', root)), 'nav');
+      mark(childContaining(root, firstMatch(navIds, root)), 'nav');
       const list = q('sidebar-status-list-scroll', root) ?? q('sidebar-project-workspace-list-scroll', root);
       const listRegion = childContaining(root, list);
-      const footerRegion = childContaining(root, q('sidebar-settings', root));
+      const footerRegion = childContaining(root, q('sidebar-footer', root) ?? q('sidebar-settings', root));
       mark(listRegion, 'list');
       mark(footerRegion, 'footer');
       // Native setup/update alerts occupy a dedicated sibling between list and footer.
       // Keep the slot in the same React-owned tree and let CSS reserve its intrinsic height.
       const calloutSlot = listRegion?.nextElementSibling;
       if (calloutSlot instanceof HTMLElement && calloutSlot.nextElementSibling === footerRegion &&
-          [...calloutSlot.children].some(child => child.getAttribute('role') === 'alert')) {
+          calloutSlot.querySelector('[role="alert"]')) {
         mark(calloutSlot, 'callout-slot');
         mark(root, 'has-callout');
       }
@@ -524,15 +590,19 @@ function createAdapter(): Shared {
       if (attach && box !== composer && flowColumn(box) && !box.closest(selector('composer-fullscreen'))) {
         mark(box, 'composer-box');
       }
+      const composerShell = (el: HTMLElement | null): el is HTMLElement =>
+        !!el && el.tagName === 'DIV' && flowColumn(el) &&
+        el.querySelectorAll(selector('message-input-root')).length === 1 &&
+        !el.matches(selector('workspace-pane-main')) && !q('agent-chat-scroll', el) &&
+        !q('workspace-header-title', el) && !q('workspace-tabs-row', el);
       const inner = composer.parentElement;
-      if (inner?.children.length === 1 && flowColumn(inner)) {
+      if (composerShell(inner)) {
         mark(inner, 'composer-inner');
         const composerFrame = inner.parentElement;
-        if (composerFrame?.children.length === 1 && flowColumn(composerFrame)) {
+        if (composerShell(composerFrame)) {
           mark(composerFrame, 'composer-inner');
           const outer = composerFrame.parentElement;
-          if (outer?.children.length === 1 && flowColumn(outer) &&
-              !outer.matches(selector('workspace-pane-main')) && !q('agent-chat-scroll', outer)) {
+          if (composerShell(outer)) {
             mark(outer, 'composer-outer');
           }
         }
@@ -608,9 +678,8 @@ html[data-pf-active] .pf-groups, html[data-pf-active] .pf-list-heading { display
  html[data-pf-active] [data-pf-sidebar] { background:linear-gradient(90deg,transparent calc(100% - 6px),var(--pf-gutter) 0),linear-gradient(var(--pf-nav-start),var(--pf-nav-end))!important; border-right:0!important; position:relative!important; }
  html[data-pf-active] [data-pf-nav] { position:absolute!important; top:0!important; left:0!important; width:var(--pf-nav)!important; bottom:110px!important; overflow:auto!important; background:transparent!important; }
  html[data-pf-active] [data-pf-nav] > div:first-child { min-height:36px!important; }
- html[data-pf-active] [data-pf-nav] button { min-height:36px; }
- html[data-pf-active] [data-pf-nav] button [dir="auto"] { font-size:14px!important; font-weight:450!important; }
- html[data-pf-active] [data-pf-nav] button { border-radius:7px!important; }
+ html[data-pf-active] [data-pf-nav] :is(button,[role="button"]) { min-height:36px; border-radius:7px!important; }
+ html[data-pf-active] [data-pf-nav] :is(button,[role="button"]) [dir="auto"] { font-size:14px!important; font-weight:450!important; }
  html[data-pf-active] [data-pf-footer] { position:absolute!important; bottom:0!important; left:0!important; width:var(--pf-nav)!important; min-height:92px!important; padding:12px 8px!important; flex-direction:column!important; align-items:stretch!important; justify-content:flex-end!important; gap:14px!important; border-top:1px solid var(--pf-border)!important; background:transparent!important; }
  html[data-pf-active] [data-pf-footer] > div { justify-content:space-between!important; }
  html[data-pf-active] [data-pf-list] { position:absolute!important; left:calc(var(--pf-nav) + var(--pf-groups))!important; top:76px!important; bottom:6px!important; width:var(--pf-list)!important; background:var(--pf-canvas)!important; border-radius:0 0 8px 0!important; }
@@ -653,13 +722,14 @@ html[data-pf-active] .pf-groups, html[data-pf-active] .pf-list-heading { display
 @media(min-width:950px) and (max-width:1179px) { html[data-pf-active] { --pf-nav:160px; --pf-groups:0px; --pf-sidebar:466px; } }
 @media(min-width:760px) and (max-width:949px) {
  html[data-pf-active] { --pf-nav:104px; --pf-groups:0px; --pf-list:254px; --pf-sidebar:364px; }
- html[data-pf-active] [data-pf-nav] button [dir="auto"], html[data-pf-active] [data-pf-footer] [dir="auto"] { display:none!important; }
+ html[data-pf-active] [data-pf-nav] :is(button,[role="button"]) [dir="auto"], html[data-pf-active] [data-pf-nav] kbd, html[data-pf-active] [data-pf-footer] [dir="auto"] { display:none!important; }
  html[data-pf-active] [data-pf-footer] > div { flex-wrap:wrap!important; gap:8px!important; }
- html[data-pf-active] [data-pf-nav] button { justify-content:center!important; padding:0!important; }
+ html[data-pf-active] [data-pf-nav] :is(button,[role="button"]) { justify-content:center!important; padding:0!important; }
 }
 
 html[data-pf-active] [data-pf-transcript-content] { padding:16px 20px!important; }
 html[data-pf-active] [data-pf-message-frame] { width:100%!important; max-width:var(--pf-content)!important; padding-left:0!important; padding-right:0!important; }
+html[data-pf-active] [data-testid="turn-summary"] { margin-left:0!important; margin-right:0!important; }
 html[data-pf-active] [data-pf-composer-outer] { padding:0 20px 20px!important; }
 html[data-pf-active] [data-pf-composer-inner] { width:100%!important; max-width:var(--pf-content)!important; }
 html[data-pf-active] [data-pf-composer-box] { min-height:116px; padding:12px!important; }
@@ -668,12 +738,14 @@ html[data-pf-active] [data-testid="assistant-message"] {
  position:relative!important; background:var(--pf-raised)!important; border:1px solid var(--pf-border)!important;
  border-radius:8px!important; padding:16px 20px!important; min-width:0!important;
 }
-html[data-pf-active] [data-testid="assistant-message"] [data-paseo-markdown-tag="p"] { margin-bottom:8px!important; }
-html[data-pf-active] [data-testid="assistant-message"] [data-paseo-markdown-tag="p"] [dir="auto"] { font-size:14px!important; line-height:24px!important; }
+html[data-pf-active] [data-testid="assistant-message"] :is([data-paseo-markdown-tag="p"],p) { margin-top:0!important; margin-bottom:8px!important; }
+html[data-pf-active] [data-testid="assistant-message"] :is([data-paseo-markdown-tag="p"] [dir="auto"],p) { font-size:14px!important; line-height:24px!important; }
 @media(min-width:760px) {
  html[data-pf-active] [data-pf-shell] { background:var(--pf-gutter)!important; }
- html[data-pf-active] [data-pf-center] { margin:6px 6px 6px 0!important; min-width:0!important; border-radius:8px!important; background:var(--pf-canvas)!important; }
+ html[data-pf-active] [data-pf-division-gap] { display:none!important; }
+ html[data-pf-active] [data-pf-center] { margin:6px 6px 6px 0!important; min-width:0!important; border-radius:8px!important; overflow:hidden!important; background:var(--pf-canvas)!important; }
  html[data-pf-active] [data-pf-center] [data-testid="workspace-pane-main"] { border-radius:8px!important; }
+ html[data-pf-active] [data-pf-turn-frame] { padding-left:42px!important; }
  html[data-pf-active] [data-testid="assistant-message"] { margin-left:42px!important; width:calc(100% - 42px)!important; }
  html[data-pf-active] [data-testid="assistant-message"]::before {
   content:""; position:absolute; left:-43px; top:0; width:32px; height:32px; border-radius:50%; pointer-events:none;
@@ -713,11 +785,18 @@ html[data-pf-active] [data-pf-tool] {
  border:1px solid var(--pf-border)!important; border-radius:8px!important;
  background:var(--pf-raised)!important; overflow:hidden!important;
 }
-html[data-pf-active] [data-pf-tool-header] {
- position:relative!important; width:100%!important; min-width:0!important;
- min-height:46px!important; justify-content:center!important; box-sizing:border-box!important; padding:9px 80px 9px 12px!important;
+html[data-pf-active] [data-pf-tool-shell] {
+ position:relative!important; display:flex!important; align-items:stretch!important;
+ width:100%!important; min-width:0!important; margin:0!important; padding:0!important;
  border:0!important; border-radius:0!important; background:transparent!important;
 }
+html[data-pf-active] [data-pf-tool-header] {
+ position:relative!important; width:100%!important; min-width:0!important;
+ min-height:46px!important; justify-content:center!important; align-content:center!important; text-align:left!important;
+ box-sizing:border-box!important; padding:9px 80px 9px 12px!important;
+ border:0!important; border-radius:0!important; background:transparent!important;
+}
+html[data-pf-active] [data-pf-tool-shell]:has(> [data-pf-tool-open-file]) > [data-pf-tool-header] { padding-right:108px!important; }
 html[data-pf-active] [data-pf-tool-header="interactive"]:hover { background:var(--pf-hover)!important; }
 html[data-pf-active] [data-pf-tool-header="interactive"]:focus-visible { outline:2px solid var(--pf-accent); outline-offset:-2px; }
 html[data-pf-active] [data-pf-tool-header]::before {
@@ -755,10 +834,18 @@ html[data-pf-active] [data-pf-tool-summary] {
  white-space:nowrap!important; overflow:hidden!important; text-overflow:ellipsis!important;
 }
 html[data-pf-active] [data-pf-tool-open-file] { grid-column:2; grid-row:1 / span 2; min-width:28px; min-height:28px; margin:0!important; }
+html[data-pf-active] [data-pf-tool-shell] > [data-pf-tool-open-file] {
+ position:absolute!important; right:74px!important; top:50%!important; transform:translateY(-50%)!important;
+ z-index:1!important; display:flex!important; align-items:center!important; justify-content:center!important;
+ padding:0!important; border:0!important; border-radius:6px!important; background:transparent!important;
+}
+html[data-pf-active] [data-pf-tool-shell] > [data-pf-tool-open-file]:hover { background:var(--pf-hover)!important; }
 html[data-pf-active] [data-pf-tool-shimmer] { visibility:hidden!important; pointer-events:none!important; }
-html[data-pf-active] [data-pf-tool-state="running"] > [data-pf-tool-header]::before { color:var(--pf-accent); }
+html[data-pf-active] [data-pf-tool-state="running"] > [data-pf-tool-header]::before,
+html[data-pf-active] [data-pf-tool-state="running"] > [data-pf-tool-shell] > [data-pf-tool-header]::before { color:var(--pf-accent); }
 html[data-pf-active] [data-pf-tool-state="failed"] { border-color:var(--colors-destructive,var(--pf-border))!important; }
-html[data-pf-active] [data-pf-tool-state="failed"] > [data-pf-tool-header]::before { color:var(--colors-destructive,var(--pf-text)); }
+html[data-pf-active] [data-pf-tool-state="failed"] > [data-pf-tool-header]::before,
+html[data-pf-active] [data-pf-tool-state="failed"] > [data-pf-tool-shell] > [data-pf-tool-header]::before { color:var(--colors-destructive,var(--pf-text)); }
 html[data-pf-active] [data-pf-tool-details] {
  min-width:0!important; max-width:100%!important; box-sizing:border-box!important;
  border:0!important; border-top:1px solid var(--pf-border)!important; border-radius:0!important;
@@ -776,7 +863,9 @@ html[data-pf-active] [data-pf-thinking-details] [dir="auto"] { color:var(--pf-se
 html[data-pf-active] [data-pf-thinking-text] { color:var(--pf-secondary)!important; font-size:13px!important; line-height:22px!important; }
 @media(max-width:759px) {
  html[data-pf-active] [data-pf-tool-header] { min-height:52px!important; padding:9px 76px 9px 10px!important; }
+ html[data-pf-active] [data-pf-tool-shell]:has(> [data-pf-tool-open-file]) > [data-pf-tool-header] { padding-right:116px!important; }
  html[data-pf-active] [data-pf-tool-open-file] { min-width:44px; min-height:44px; }
+ html[data-pf-active] [data-pf-tool-shell] > [data-pf-tool-open-file] { right:70px!important; }
  html[data-pf-active] .pf-tool-copy { min-height:44px; }
 }
 
@@ -806,25 +895,25 @@ html[data-pf-active] [data-pf-command-preview] [data-pf-tool-summary] {
 }
 html[data-pf-active] [data-pf-command-preview] [data-pf-tool-open-file] { grid-row:1!important; }
 /* Keep visually hidden tool names available to assistive technology. */
-html[data-pf-active] :is([data-pf-file-preview],[data-pf-explore-preview],[data-pf-todo-preview],[data-pf-summary-preview]) > [data-pf-tool-header] [data-pf-tool-label] {
+html[data-pf-active] :is([data-pf-file-preview],[data-pf-explore-preview],[data-pf-todo-preview],[data-pf-summary-preview]) > [data-pf-tool-bar] [data-pf-tool-label] {
  position:absolute!important; width:1px!important; height:1px!important; margin:-1px!important;
  padding:0!important; border:0!important; overflow:hidden!important; clip-path:inset(50%)!important;
 }
-html[data-pf-active] :is([data-pf-file-preview],[data-pf-explore-preview],[data-pf-todo-preview],[data-pf-summary-preview]) > [data-pf-tool-header] [data-pf-tool-summary] {
+html[data-pf-active] :is([data-pf-file-preview],[data-pf-explore-preview],[data-pf-todo-preview],[data-pf-summary-preview]) > [data-pf-tool-bar] [data-pf-tool-summary] {
  grid-row:1!important; height:20px!important; font-size:13px!important; line-height:20px!important;
  text-align:left!important;
 }
 html[data-pf-active] :is([data-pf-file-preview],[data-pf-summary-preview]) [data-pf-tool-open-file] { grid-row:1!important; }
 /* Preserve the native glyph for status detection while drawing Explore's search icon. */
-html[data-pf-active] [data-pf-explore-tool] > [data-pf-tool-header] [data-pf-tool-icon] { position:relative!important; }
-html[data-pf-active] [data-pf-explore-tool] > [data-pf-tool-header] [data-pf-tool-icon] svg { visibility:hidden!important; }
-html[data-pf-active] [data-pf-explore-tool] > [data-pf-tool-header] [data-pf-tool-icon]::before {
+html[data-pf-active] [data-pf-explore-tool] > [data-pf-tool-bar] [data-pf-tool-icon] { position:relative!important; }
+html[data-pf-active] [data-pf-explore-tool] > [data-pf-tool-bar] [data-pf-tool-icon] svg { visibility:hidden!important; }
+html[data-pf-active] [data-pf-explore-tool] > [data-pf-tool-bar] [data-pf-tool-icon]::before {
  content:""; position:absolute; width:16px; height:16px; top:2px; left:1px; pointer-events:none;
  background:var(--pf-secondary);
  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m16 16 5 5'/%3E%3C/svg%3E") center/contain no-repeat;
 }
-html[data-pf-active] [data-pf-explore-tool][data-pf-tool-state="running"] > [data-pf-tool-header] [data-pf-tool-icon]::before { background:var(--pf-accent); }
-html[data-pf-active] [data-pf-explore-tool][data-pf-tool-state="failed"] > [data-pf-tool-header] [data-pf-tool-icon]::before { background:var(--colors-destructive,var(--pf-text)); }
+html[data-pf-active] [data-pf-explore-tool][data-pf-tool-state="running"] > [data-pf-tool-bar] [data-pf-tool-icon]::before { background:var(--pf-accent); }
+html[data-pf-active] [data-pf-explore-tool][data-pf-tool-state="failed"] > [data-pf-tool-bar] [data-pf-tool-icon]::before { background:var(--colors-destructive,var(--pf-text)); }
 @media(min-width:760px) {
  html[data-pf-active] [data-pf-response-part] { margin-left:42px!important; width:calc(100% - 42px)!important; }
  html[data-pf-active] [data-pf-response-avatar]::before {

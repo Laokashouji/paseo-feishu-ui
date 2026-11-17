@@ -169,3 +169,9 @@ The later 0.3.15 manifest removes the upper bound. On 2026-11-04, original and o
 - Version 0.3.14 permits Paseo 0.14 without changing the visual adapter. Original development types, 0.14.0 SDK types and the official compiler pass; both native entry tests and all three browser suites pass.
 - The official 0.14.0 web client loads the plugin and selects its dark theme. The native new-workspace composer at 1342px and 390px has one border, 116px height, no horizontal overflow, a blue focus ring and a gray border after blur. Screenshots were inspected; no prompt was sent or workspace created.
 - Sidebar icon sizes are covered by browser fixtures. The 0.14 `turn-summary` badge is excluded from tool decoration by its testID; completed-turn interaction in a real conversation, native macOS Electron and iOS/Android hardware were not exercised in this check.
+
+# Paseo 0.16.1 compatibility — 0.3.16, 2026-11-18
+
+- The official 0.16.1 SDK typecheck and client compiler pass, alongside the original development types, both native-entry smoke tests and four browser suites. The new browser fixture covers the docked sidebar wrappers, search/footer actions, nested callouts, sibling file/disclosure buttons, disabled headers, transparent message wrappers, collapsed-turn boundaries and teardown in both themes at 1342px and 390px.
+- An isolated official 0.16.1 daemon and web client load the dark theme. At 1342×750 the group column starts at x180 with width160 and the workspace column starts at x340 with width300. At 390×750 the auxiliary columns disappear; both widths have no page overflow. The desktop screenshot was inspected and the Topics screen opens normally.
+- These checks do not verify native macOS Electron, actual streaming turns, operating-system clipboard, permissions or iOS/Android devices. Native mobile remains palette-only. Production installation receipts are checked separately from these visual results.

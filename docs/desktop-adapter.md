@@ -1,8 +1,10 @@
-# Desktop adapter contract: Paseo 0.8.0
+# Desktop adapter contract
+
+Paseo 0.16 wraps the docked sidebar in flex-column containers and adds a division gap next to the center pane. The adapter accepts single visible branches through these wrappers, rejects absolute/fixed drawers, and recognizes the footer and search anchors. Tool headers may put the disclosure button and file button beside each other. Native handlers stay on their original nodes. Collapsed-turn indent rails remain response boundaries; single-child `display: contents` wrappers are transparent when identifying assistant blocks. `tests/paseo-016.browser.cjs` covers these structures, native actions, compact layouts and cleanup.
 
 Paseo 0.12 sidebar icons: `ProjectIconView` is wrapped by a single-child `display: contents` host. Resolve that wrapper before marking the actual avatar and its box; leave the sibling status badge untouched. Desktop avatars remain 36px circles, while compact layouts retain native dimensions. `tests/sidebar-icons.browser.cjs` covers the old direct-child structure, the new wrapper, image avatars, both themes and cleanup.
 
-Updated 2026-09-11: the desktop shell inserts a single-child `display: contents` wrapper above the sidebar width controller. `sidebarFrame` skips only these wrappers (at most three), then requires a real flex row with exactly two children. The validated sibling receives the chat frame style. This restores the 6px inset and 8px corners; blindly using the immediate parent loses the separation on 0.8. Source lives in `client/web.ts`.
+Paseo 0.8 inserts a single-child `display: contents` wrapper above the sidebar width controller. This older shape remains supported alongside the 0.16 docked layout. The validated center sibling receives the 6px inset and 8px corners. Source lives in `client/web.ts`.
 
 Source inspection and initial native integration verification completed on 2026-09-07. This document records version-specific constraints; see [verification](verification.md) for observed behavior and remaining coverage limits.
 
